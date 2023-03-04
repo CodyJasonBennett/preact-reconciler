@@ -66,10 +66,9 @@ const catalogue = {}
 export const extend = (objects) => void Object.assign(catalogue, objects)
 
 const reconciler = Reconciler({
-  createInstance(
-    type,
-    { args = [], object = new catalogue[type[0].toUpperCase() + type.slice(1)](...args), ...props },
-  ) {
+  createInstance(type, props) {
+    const object = props.object ?? new catalogue[type[0].toUpperCase() + type.slice(1)](...(props.args ?? []))
+
     if (props.attach === undefined) {
       if (object.isMaterial) props.attach = 'material'
       else if (object.isBufferGeometry) props.attach = 'geometry'
@@ -77,10 +76,10 @@ const reconciler = Reconciler({
 
     applyProps(object, props)
 
-    return { type, object, props: { args, ...props } }
+    return { type, object, props }
   },
   prepareUpdate(instance, type, oldProps, newProps) {
-    if (instance.type && oldProps.object !== newProps.object) return true
+    if (oldProps.object !== newProps.object) return true
     if (oldProps.args.length !== newProps.args.length || newProps.args.some((v, i) => v !== oldProps.args[i]))
       return true
 
@@ -90,7 +89,7 @@ const reconciler = Reconciler({
     for (const key in newProps) {
       if (newProps[key] !== oldProps[key]) {
         props[key] = newProps[key]
-        changed ||= true
+        changed = true
       }
     }
 
@@ -163,6 +162,17 @@ export function createRoot(canvas) {
         store.gl.toneMapping = THREE.ACESFilmicToneMapping
 
         store.gl.setAnimationLoop(() => {
+          const width = canvas.parentElement?.clientWidth ?? 0
+          const height = canvas.parentElement?.clientHeight ?? 0
+
+          if (width !== store.size.width || height !== store.size.height) {
+            store.gl.setSize(width, height)
+            store.camera.aspect = width / height
+            store.camera.updateProjectionMatrix()
+            store.size.width = width
+            store.size.height = height
+          }
+
           let priority = 0
           for (const ref of store.subscriptions) {
             ref.current(store)
@@ -178,15 +188,6 @@ export function createRoot(canvas) {
         store.camera.position.z = 5
       }
       if (config?.camera) applyProps(store.camera, config.camera)
-
-      const width = config?.size?.width ?? canvas.parentElement?.clientWidth ?? 0
-      const height = config?.size?.height ?? canvas.parentElement?.clientHeight ?? 0
-      if (width !== store.size.width || height !== store.size.height) {
-        Object.assign(store.size, { width, height })
-        store.gl.setSize(width, height)
-        store.camera.aspect = width / height
-        store.camera.updateProjectionMatrix()
-      }
 
       return reconciler.updateContainer(<context.Provider value={store}>{element}</context.Provider>, root)
     },

@@ -6,45 +6,44 @@ let i = 0
 export function Reconciler(HostConfig) {
   const id = `preact-fiber-${i++}`
 
-  customElements.define(
-    id,
-    class extends HTMLElement {
-      setAttribute(name, value) {
-        if (name === '__vnode') this[name] = value
-        else return super.setAttribute(name, value)
+  class PreactFiber extends HTMLElement {
+    setAttribute(name, value) {
+      if (name === '__vnode') this[name] = value
+    }
+    appendChild(child) {
+      if (!this.__vnode) {
+        HostConfig.appendChildToContainer(this.__containerInfo, child.__vnode.__instance)
+      } else {
+        HostConfig.appendChild(this.__vnode.__instance, child.__vnode.__instance)
       }
-      appendChild(child) {
-        if (!this.__vnode) {
-          HostConfig.appendChildToContainer(this.__containerInfo, child.__vnode.__instance)
-        } else {
-          HostConfig.appendChild(this.__vnode.__instance, child.__vnode.__instance)
-        }
-        return super.appendChild(child)
+      return super.appendChild(child)
+    }
+
+    insertBefore(child, beforeChild) {
+      if (!this.__vnode) {
+        HostConfig.insertInContainerBefore(
+          this.__containerInfo,
+          child.__vnode.__instance,
+          beforeChild.__vnode.__instance,
+        )
+      } else {
+        HostConfig.insertBefore(this.__vnode.__instance, child.__vnode.__instance, beforeChild.__vnode.__instance)
+      }
+      return super.insertBefore(child, beforeChild)
+    }
+
+    removeChild(child) {
+      if (!this.__vnode) {
+        HostConfig.removeChildFromContainer(this.__containerInfo, child.__vnode.__instance)
+      } else {
+        HostConfig.removeChild(this.__instance, child.__vnode.__instance)
       }
 
-      insertBefore(child, beforeChild) {
-        if (!this.__vnode) {
-          HostConfig.insertInContainerBefore(
-            this.__containerInfo,
-            child.__vnode.__instance,
-            beforeChild.__vnode.__instance,
-          )
-        } else {
-          HostConfig.insertBefore(this.__vnode.__instance, child.__vnode.__instance, beforeChild.__vnode.__instance)
-        }
-        return super.insertBefore(child, beforeChild)
-      }
+      return super.removeChild(child)
+    }
+  }
 
-      removeChild(child) {
-        if (!this.__vnode) {
-          HostConfig.removeChildFromContainer(this.__containerInfo, child.__vnode.__instance)
-        } else {
-          HostConfig.removeChild(this.__instance, child.__vnode.__instance)
-        }
-        return super.removeChild(child)
-      }
-    },
-  )
+  customElements.define(id, PreactFiber)
 
   const _vnode = options.vnode
   options.vnode = (vnode) => {
@@ -67,12 +66,13 @@ export function Reconciler(HostConfig) {
       }
 
       if (!container.__containerInfo) {
-        vnode.type = vnode.__type
+        if (vnode.__e instanceof PreactFiber) vnode.__e = document.createElement(vnode.__type)
+        // vnode.type = vnode.__type
       } else {
         let next = vnode
         while (next) {
           const node = next
-          if (typeof node.type === 'string' && !node.__instance) {
+          if (node.__type && !node.__instance) {
             node.__instance = HostConfig.createInstance(node.__type, node.props)
             let ref = node.ref
             Object.defineProperty(node, 'ref', {

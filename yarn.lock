@@ -396,9 +396,9 @@ is-core-module@^2.9.0:
     has "^1.0.3"
 
 its-fine@^1.0.6:
-  version "1.0.9"
-  resolved "https://registry.yarnpkg.com/its-fine/-/its-fine-1.0.9.tgz#f4ca0ad5bdbf896764d35f7cf24c16287b6c6d31"
-  integrity sha512-Ph+vcp1R100JOM4raXmDx/wCTi4kMkMXiFE108qGzsLdghXFPqad82UJJtqT1jwdyWYkTU6eDpDnol/ZIzW+1g==
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/its-fine/-/its-fine-1.0.10.tgz#07d19f7194ca60dd70abeb68614fe81fef235a33"
+  integrity sha512-3ZRmDCocq0vmxplC866rEe4PPgOSsuRw90/tvT7nT5QndqIQWsecZPJh75rqSQSn06MxKOjX7rWV/7cFhVsCBg==
   dependencies:
     "@types/react-reconciler" "^0.28.0"
 

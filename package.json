@@ -2,11 +2,15 @@
   "name": "preact-reconciler",
   "version": "0.0.0",
   "devDependencies": {
+    "@react-three/drei": "^9.57.0",
+    "@react-three/fiber": "^8.11.7",
     "preact": "^10.13.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "three": "^0.150.1",
     "vite": "^4.1.4"
   },
   "scripts": {
-    "dev": "vite demo"
+    "dev": "vite"
   }
 }

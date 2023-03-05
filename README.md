@@ -8,6 +8,24 @@ Custom renderers for Preact in <1KB.
 
 This package implements [`react-reconciler`](https://npmjs.com/react-reconciler) which allows for custom renderers to be implemented and shared between Preact and React such as [`@react-three/fiber`](https://github.com/pmndrs/react-three-fiber#readme).
 
+```jsx
+import { render } from 'preact'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
+
+// This is the same as ReactDOM.createRoot(root).render(...) with preact/compat
+render(
+  <Canvas>
+    <OrbitControls />
+    <mesh>
+      <boxGeometry />
+      <meshNormalMaterial />
+    </mesh>
+  </Canvas>,
+  root,
+)
+```
+
 ## Installation
 
 To get started, you'll only need `preact` and `preact-reconciler`. No need to install `react` or `react-dom`.

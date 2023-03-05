@@ -72,7 +72,7 @@ export function Reconciler(HostConfig) {
         while (next) {
           const node = next
           if (node.__type && !node.stateNode) {
-            node.stateNode = HostConfig.createInstance(node.__type, node.props)
+            node.stateNode = HostConfig.createInstance(node.__type, node.props, container, null, vnode)
             let ref = node.ref
             Object.defineProperty(node, 'ref', {
               get() {
@@ -91,16 +91,28 @@ export function Reconciler(HostConfig) {
           next = next.__
         }
 
-        // On subsequent runs, reconcile props
-        if (vnode.memoizedProps) {
-          const payload = HostConfig.prepareUpdate(instance, vnode.__type, vnode.memoizedProps, vnode.props)
+        if (!vnode.memoizedProps) {
+          // On first run, finalize instance
+          const pending = HostConfig.finalizeInitialChildren(vnode.stateNode, vnode.__type, vnode.props, container)
+          if (pending) HostConfig.commitMount(vnode.stateNode, vnode.__type, vnode.props, vnode)
+        } else {
+          // On subsequent runs, reconcile props
+          const payload = HostConfig.prepareUpdate(
+            vnode.stateNode,
+            vnode.__type,
+            vnode.memoizedProps,
+            vnode.props,
+            container,
+            null,
+          )
           if (payload) {
             const replacement = HostConfig.commitUpdate(
-              instance,
+              vnode.stateNode,
               payload,
               vnode.__type,
               vnode.memoizedProps,
               vnode.props,
+              vnode,
             )
 
             // If commitUpdate returns an instance, swap to it
@@ -128,6 +140,7 @@ export function Reconciler(HostConfig) {
     createPortal(...args) {
       return createPortal(...args)
     },
+    injectIntoDevTools() {},
   }
 }
 

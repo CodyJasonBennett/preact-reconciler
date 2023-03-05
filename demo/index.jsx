@@ -138,6 +138,8 @@ const reconciler = Reconciler({
   removeChildFromContainer(container, child) {
     this.removeChild({ object: container.scene }, child)
   },
+  finalizeInitialChildren() {},
+  commitMount() {},
 })
 
 const context = React.createContext(null)

@@ -1,30 +1,23 @@
-import { options } from 'preact'
-import { render, createPortal } from 'preact/compat'
+import { options, render } from 'preact'
 
 // Creates an HTMLNode proxy for reconciliation
 class PreactFiber extends HTMLElement {
-  get _HostConfig() {
-    return this.__hostConfig ?? this.__vnode?.__container?.__hostConfig
-  }
   setAttribute(name, value) {
-    if (name === '__vnode') this[name] = value
+    this[name] = value
   }
-  removeAttribute() {}
-  addEventListener() {}
-  removeEventListener() {}
   appendChild(child) {
     if (this.__vnode) {
-      this._HostConfig.appendChild(this.__vnode.stateNode, child.__vnode.stateNode)
+      this.__hostConfig.appendChild(this.__vnode.stateNode, child.__vnode.stateNode)
     } else {
-      this._HostConfig.appendChildToContainer(this.__containerInfo, child.__vnode.stateNode)
+      this.__hostConfig.appendChildToContainer(this.__containerInfo, child.__vnode.stateNode)
     }
     return super.appendChild(child)
   }
   insertBefore(child, beforeChild) {
     if (this.__vnode) {
-      this._HostConfig.insertBefore(this.__vnode.stateNode, child.__vnode.stateNode, beforeChild.__vnode.stateNode)
+      this.__hostConfig.insertBefore(this.__vnode.stateNode, child.__vnode.stateNode, beforeChild.__vnode.stateNode)
     } else {
-      this._HostConfig.insertInContainerBefore(
+      this.__hostConfig.insertInContainerBefore(
         this.__containerInfo,
         child.__vnode.stateNode,
         beforeChild.__vnode.stateNode,
@@ -34,9 +27,9 @@ class PreactFiber extends HTMLElement {
   }
   removeChild(child) {
     if (this.__vnode) {
-      this._HostConfig.removeChild(this.stateNode, child.__vnode.stateNode)
+      this.__hostConfig.removeChild(this.stateNode, child.__vnode.stateNode)
     } else {
-      this._HostConfig.removeChildFromContainer(this.__containerInfo, child.__vnode.stateNode)
+      this.__hostConfig.removeChildFromContainer(this.__containerInfo, child.__vnode.stateNode)
     }
     return super.removeChild(child)
   }
@@ -57,10 +50,12 @@ export function Reconciler(__hostConfig) {
           while (root.__) root = root.__
           container = vnode.__container = root.__c.__P
 
-          if (container.__hostConfig) {
+          const HostConfig = container.__hostConfig
+          if (HostConfig) {
             vnode.__type = vnode.type
             vnode.type = 'preact-fiber'
             vnode.props.__vnode = vnode
+            vnode.props.__hostConfig = HostConfig
           }
         }
       }
@@ -82,6 +77,7 @@ export function Reconciler(__hostConfig) {
             node.type = node.__type
             delete node.__type
             delete node.props.__vnode
+            delete node.props.__hostConfig
             node.stateNode = HostConfig.createInstance(node.type, node.props, containerInfo, null, vnode)
             let ref = node.ref
             Object.defineProperty(node, 'ref', {
@@ -145,11 +141,8 @@ export function Reconciler(__hostConfig) {
     createContainer(__containerInfo) {
       return Object.assign(document.createElement('preact-fiber'), { __containerInfo, __hostConfig })
     },
-    updateContainer(element, root, _, callback) {
-      return render(element, root, callback)
-    },
-    createPortal(...args) {
-      return createPortal(...args)
+    updateContainer(element, root) {
+      return render(element, root)
     },
     injectIntoDevTools() {},
   }

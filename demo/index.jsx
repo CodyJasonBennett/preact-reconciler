@@ -1,9 +1,8 @@
-import * as React from 'react'
-import * as ReactDOM from 'react-dom/client'
+import { render } from 'preact'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 
-ReactDOM.createRoot(root).render(
+render(
   <Canvas>
     <OrbitControls />
     <mesh>
@@ -11,4 +10,5 @@ ReactDOM.createRoot(root).render(
       <meshNormalMaterial />
     </mesh>
   </Canvas>,
+  root,
 )

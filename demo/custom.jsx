@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom/client'
 import * as THREE from 'three'
 import { OrbitControls as OrbitControlsImpl } from 'three/examples/jsm/controls/OrbitControls.js'
 import Reconciler from 'react-reconciler'
+import { DefaultEventPriority } from 'react-reconciler/constants'
 
 function resolve(root, key) {
   let target = root[key]
@@ -66,24 +67,55 @@ const catalogue = {}
 
 export const extend = (objects) => void Object.assign(catalogue, objects)
 
+function createInstance(type, newProps) {
+  // React unsafely gives us a raw handle here for perf
+  const props = { ...newProps }
+
+  const object = props.object ?? new catalogue[type[0].toUpperCase() + type.slice(1)](...(props.args ?? []))
+
+  if (props.attach === undefined) {
+    if (object.isMaterial) props.attach = 'material'
+    else if (object.isBufferGeometry) props.attach = 'geometry'
+  }
+
+  applyProps(object, props)
+
+  return { type, object, props }
+}
+
+function appendChild(parent, child) {
+  if (child.props.attach) {
+    attach(parent, child)
+  } else if (parent.object.isObject3D && child.object.isObject3D) {
+    parent.object.add(child.object)
+  }
+}
+
+function insertBefore(parent, child, beforeChild) {
+  if (child.props.attach) {
+    attach(parent, child)
+  } else if (parent.object.isObject3D && child.object.isObject3D) {
+    child.object.parent = parent.object
+    parent.object.children.splice(parent.children.indexOf(beforeChild.object), 0, child.object)
+    child.object.dispatchEvent({ type: 'added' })
+  }
+}
+
+function removeChild(parent, child) {
+  if (child.props.attach) {
+    detach(parent, child)
+  } else if (parent.object.isObject3D && child.object.isObject3D) {
+    parent.object.remove(child.object)
+  }
+
+  child.object.dispose?.()
+  child.object.traverse?.((node) => node.dispose?.())
+  delete child.object
+}
+
 const reconciler = Reconciler({
-  createInstance(type, props) {
-    const object = props.object ?? new catalogue[type[0].toUpperCase() + type.slice(1)](...(props.args ?? []))
-
-    if (props.attach === undefined) {
-      if (object.isMaterial) props.attach = 'material'
-      else if (object.isBufferGeometry) props.attach = 'geometry'
-    }
-
-    applyProps(object, props)
-
-    return { type, object, props }
-  },
+  createInstance,
   prepareUpdate(instance, type, oldProps, newProps) {
-    if (oldProps.object !== newProps.object) return true
-    if (oldProps.args.length !== newProps.args.length || newProps.args.some((v, i) => v !== oldProps.args[i]))
-      return true
-
     let changed = false
 
     const props = {}
@@ -97,50 +129,52 @@ const reconciler = Reconciler({
     return changed ? props : null
   },
   commitUpdate(instance, payload, type, oldProps, newProps) {
-    if (payload === true) return this.createInstance(type, newProps)
-    else applyProps(instance.object, payload)
+    applyProps(instance.object, payload)
   },
   getPublicInstance(instance) {
     return instance.object
   },
-  appendChild(parent, child) {
-    if (child.props.attach) {
-      attach(parent, child)
-    } else if (parent.object.isObject3D && child.object.isObject3D) {
-      parent.object.add(child.object)
-    }
-  },
+  appendInitialChild: appendChild,
+  appendChild,
   appendChildToContainer(container, child) {
-    this.appendChild({ object: container.scene }, child)
+    appendChild({ object: container.scene }, child)
   },
-  insertBefore(parent, child, beforeChild) {
-    if (child.props.attach) {
-      attach(parent, child)
-    } else if (parent.object.isObject3D && child.object.isObject3D) {
-      child.object.parent = parent.object
-      parent.object.children.splice(parent.children.indexOf(beforeChild.object), 0, child.object)
-      child.object.dispatchEvent({ type: 'added' })
-    }
-  },
+  insertBefore,
   insertInContainerBefore(container, child, beforeChild) {
-    this.insertBefore({ object: container.scene }, child, beforeChild)
+    insertBefore({ object: container.scene }, child, beforeChild)
   },
-  removeChild(parent, child) {
-    if (child.props.attach) {
-      detach(parent, child)
-    } else if (parent.object.isObject3D && child.object.isObject3D) {
-      parent.object.remove(child.object)
-    }
-
-    child.object.dispose?.()
-    child.object.traverse?.((node) => node.dispose?.())
-    delete child.object
-  },
+  removeChild,
   removeChildFromContainer(container, child) {
-    this.removeChild({ object: container.scene }, child)
+    removeChild({ object: container.scene }, child)
   },
   finalizeInitialChildren() {},
   commitMount() {},
+  // React compat
+  isPrimaryRenderer: false,
+  supportsMutation: true,
+  supportsPersistence: false,
+  supportsHydration: false,
+  now: performance.now,
+  scheduleTimeout: setTimeout,
+  cancelTimeout: clearTimeout,
+  noTimeout: -1,
+  hideInstance() {},
+  unhideInstance() {},
+  createTextInstance() {},
+  hideTextInstance() {},
+  unhideTextInstance() {},
+  getRootHostContext: () => null,
+  getChildHostContext: () => null,
+  shouldSetTextContent: () => false,
+  commitTextUpdate() {},
+  prepareForCommit: () => null,
+  resetAfterCommit() {},
+  preparePortalMount() {},
+  clearContainer() {},
+  getCurrentEventPriority: () => DefaultEventPriority,
+  beforeActiveInstanceBlur() {},
+  afterActiveInstanceBlur() {},
+  detachDeletedInstance() {},
 })
 
 const context = React.createContext(null)

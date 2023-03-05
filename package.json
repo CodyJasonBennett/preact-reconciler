@@ -1,6 +1,66 @@
 {
   "name": "preact-reconciler",
   "version": "0.0.0",
+  "description": "Custom renderers for Preact in <1KB.",
+  "keywords": [
+    "react",
+    "preact",
+    "minimal",
+    "reconciliation",
+    "jsx",
+    "vdom",
+    "fiber",
+    "renderers"
+  ],
+  "author": "Cody Bennett (https://github.com/CodyJasonBennett)",
+  "homepage": "https://github.com/CodyJasonBennett/preact-reconciler",
+  "repository": "https://github.com/CodyJasonBennett/preact-reconciler",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    },
+    "./index": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    },
+    "./index.js": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    },
+    "./constants": {
+      "types": "./dist/constants.d.ts",
+      "require": "./dist/constants.js",
+      "import": "./dist/constants.mjs"
+    },
+    "./reflection": {
+      "types": "./dist/reflection.d.ts",
+      "require": "./dist/reflection.js",
+      "import": "./dist/reflection.mjs"
+    },
+    "./constants.js": {
+      "types": "./dist/constants.d.ts",
+      "require": "./dist/constants.js",
+      "import": "./dist/constants.mjs"
+    },
+    "./reflection.js": {
+      "types": "./dist/reflection.d.ts",
+      "require": "./dist/reflection.js",
+      "import": "./dist/reflection.mjs"
+    }
+  },
+  "sideEffects": false,
   "devDependencies": {
     "@preact/preset-vite": "^2.5.0",
     "@react-three/drei": "^9.57.0",
@@ -9,10 +69,12 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "three": "^0.150.1",
+    "typescript": "^4.9.5",
     "vite": "^4.1.4"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build"
+    "dev": "vite demo",
+    "build": "vite build && tsc",
+    "test": "echo TODO"
   }
 }

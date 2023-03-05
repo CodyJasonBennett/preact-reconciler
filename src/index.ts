@@ -1,47 +1,54 @@
-import { options, render } from 'preact'
+import { options as _options, render } from 'preact'
+import type { Fiber, HostConfig, Reconciler } from './types'
 
 // Creates an HTMLNode proxy for reconciliation
-class PreactFiber extends HTMLElement {
-  setAttribute(name, value) {
+class PreactFiber extends (HTMLElement as { new (): Fiber['__e'] }) {
+  setAttribute(name: string, value: any): void {
     this[name] = value
   }
-  appendChild(child) {
+  appendChild<T extends Node>(node: T): T {
+    const child = node as unknown as PreactFiber
     if (this.__vnode) {
-      this.__hostConfig.appendChild(this.__vnode.stateNode, child.__vnode.stateNode)
+      this.__hostConfig.appendChild(this.__vnode.stateNode, child.__vnode!.stateNode)
     } else {
-      this.__hostConfig.appendChildToContainer(this.__containerInfo, child.__vnode.stateNode)
+      this.__hostConfig.appendChildToContainer(this.__containerInfo, child.__vnode!.stateNode)
     }
-    return super.appendChild(child)
+    return super.appendChild(node)
   }
-  insertBefore(child, beforeChild) {
+  insertBefore<T extends Node>(node: T, beforeNode: Node | null): T {
+    const child = node as unknown as PreactFiber
+    const beforeChild = beforeNode as unknown as PreactFiber
     if (this.__vnode) {
-      this.__hostConfig.insertBefore(this.__vnode.stateNode, child.__vnode.stateNode, beforeChild.__vnode.stateNode)
+      this.__hostConfig.insertBefore(this.__vnode.stateNode, child.__vnode!.stateNode, beforeChild.__vnode!.stateNode)
     } else {
       this.__hostConfig.insertInContainerBefore(
         this.__containerInfo,
-        child.__vnode.stateNode,
-        beforeChild.__vnode.stateNode,
+        child.__vnode!.stateNode,
+        beforeChild.__vnode!.stateNode,
       )
     }
-    return super.insertBefore(child, beforeChild)
+    return super.insertBefore(node, beforeNode)
   }
-  removeChild(child) {
+  removeChild<T extends Node>(node: T): T {
+    const child = node as unknown as PreactFiber
     if (this.__vnode) {
-      this.__hostConfig.removeChild(this.stateNode, child.__vnode.stateNode)
+      this.__hostConfig.removeChild(this.__vnode.stateNode, child.__vnode!.stateNode)
     } else {
-      this.__hostConfig.removeChildFromContainer(this.__containerInfo, child.__vnode.stateNode)
+      this.__hostConfig.removeChildFromContainer(this.__containerInfo, child.__vnode!.stateNode)
     }
-    return super.removeChild(child)
+    return super.removeChild(node)
   }
 }
 
-export function Reconciler(__hostConfig) {
+export default function PreactReconciler(__hostConfig: HostConfig): Reconciler {
   // Inject custom reconciler runtime
   if (!customElements.get('preact-fiber')) {
     customElements.define('preact-fiber', PreactFiber)
 
+    const options = _options as any
+
     const _diff = options.__b
-    options.__b = (vnode) => {
+    options.__b = (vnode: Fiber) => {
       // On first run, link managed nodes
       if (typeof vnode.type === 'string') {
         let container = vnode.__container
@@ -63,7 +70,7 @@ export function Reconciler(__hostConfig) {
     }
 
     const _diffed = options.diffed
-    options.diffed = (vnode) => {
+    options.diffed = (vnode: Fiber) => {
       // Create and link managed instances
       const container = vnode.__container
       const HostConfig = container?.__hostConfig
@@ -142,10 +149,13 @@ export function Reconciler(__hostConfig) {
       return Object.assign(document.createElement('preact-fiber'), { __containerInfo, __hostConfig })
     },
     updateContainer(element, root) {
-      return render(element, root)
+      render(element, root)
+    },
+    createPortal() {
+      return null // TODO
     },
     injectIntoDevTools() {},
   }
 }
 
-export default Reconciler
+export * from './types'

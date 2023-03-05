@@ -1,78 +1,88 @@
 import { options } from 'preact'
 import { render, createPortal } from 'preact/compat'
 
-let i = 0
-
-export function Reconciler(HostConfig) {
-  const id = `preact-fiber-${i++}`
-
-  // Creates an HTMLNode proxy for reconciliation
-  class PreactFiber extends HTMLElement {
-    setAttribute(name, value) {
-      if (name === '__vnode') this[name] = value
-    }
-    removeAttribute() {}
-    addEventListener() {}
-    removeEventListener() {}
-    appendChild(child) {
-      if (!this.__vnode) {
-        HostConfig.appendChildToContainer(this.__containerInfo, child.__vnode.stateNode)
-      } else {
-        HostConfig.appendChild(this.__vnode.stateNode, child.__vnode.stateNode)
-      }
-      return super.appendChild(child)
-    }
-    insertBefore(child, beforeChild) {
-      if (!this.__vnode) {
-        HostConfig.insertInContainerBefore(this.__containerInfo, child.__vnode.stateNode, beforeChild.__vnode.stateNode)
-      } else {
-        HostConfig.insertBefore(this.__vnode.stateNode, child.__vnode.stateNode, beforeChild.__vnode.stateNode)
-      }
-      return super.insertBefore(child, beforeChild)
-    }
-    removeChild(child) {
-      if (!this.__vnode) {
-        HostConfig.removeChildFromContainer(this.__containerInfo, child.__vnode.stateNode)
-      } else {
-        HostConfig.removeChild(this.stateNode, child.__vnode.stateNode)
-      }
-      return super.removeChild(child)
-    }
+// Creates an HTMLNode proxy for reconciliation
+class PreactFiber extends HTMLElement {
+  get _HostConfig() {
+    return this.__hostConfig ?? this.__vnode?.__container?.__hostConfig
   }
-  customElements.define(id, PreactFiber)
-
-  const _vnode = options.vnode
-  options.vnode = (vnode) => {
-    // Render all elements as PreactFiber, we'll release any unmanaged nodes later
-    if (typeof vnode.type === 'string') {
-      vnode.__type = vnode.type
-      vnode.type = id
-      vnode.props.__vnode = vnode
-    }
-    _vnode?.(vnode)
+  setAttribute(name, value) {
+    if (name === '__vnode') this[name] = value
   }
+  removeAttribute() {}
+  addEventListener() {}
+  removeEventListener() {}
+  appendChild(child) {
+    if (this.__vnode) {
+      this._HostConfig.appendChild(this.__vnode.stateNode, child.__vnode.stateNode)
+    } else {
+      this._HostConfig.appendChildToContainer(this.__containerInfo, child.__vnode.stateNode)
+    }
+    return super.appendChild(child)
+  }
+  insertBefore(child, beforeChild) {
+    if (this.__vnode) {
+      this._HostConfig.insertBefore(this.__vnode.stateNode, child.__vnode.stateNode, beforeChild.__vnode.stateNode)
+    } else {
+      this._HostConfig.insertInContainerBefore(
+        this.__containerInfo,
+        child.__vnode.stateNode,
+        beforeChild.__vnode.stateNode,
+      )
+    }
+    return super.insertBefore(child, beforeChild)
+  }
+  removeChild(child) {
+    if (this.__vnode) {
+      this._HostConfig.removeChild(this.stateNode, child.__vnode.stateNode)
+    } else {
+      this._HostConfig.removeChildFromContainer(this.__containerInfo, child.__vnode.stateNode)
+    }
+    return super.removeChild(child)
+  }
+}
 
-  const _diffed = options.diffed
-  options.diffed = (vnode) => {
-    if (vnode.__type && vnode.__e instanceof PreactFiber) {
-      // On first run, find the nearest container if able
-      let container = vnode.__container
-      if (!container) {
-        let root = vnode.__
-        while (root.__) root = root.__
-        container = vnode.__container = root.__c.__P
+export function Reconciler(__hostConfig) {
+  // Inject custom reconciler runtime
+  if (!customElements.get('preact-fiber')) {
+    customElements.define('preact-fiber', PreactFiber)
+
+    const _diff = options.__b
+    options.__b = (vnode) => {
+      // On first run, link managed nodes
+      if (typeof vnode.type === 'string') {
+        let container = vnode.__container
+        if (!container) {
+          let root = vnode.__
+          while (root.__) root = root.__
+          container = vnode.__container = root.__c.__P
+
+          if (container.__hostConfig) {
+            vnode.__type = vnode.type
+            vnode.type = 'preact-fiber'
+            vnode.props.__vnode = vnode
+          }
+        }
       }
+      _diff?.(vnode)
+    }
 
-      if (!container.__containerInfo) {
-        // Release unmanaged nodes
-        vnode.__e = document.createElement(vnode.__type)
-      } else {
-        // Create and link managed nodes
+    const _diffed = options.diffed
+    options.diffed = (vnode) => {
+      // Create and link managed instances
+      const container = vnode.__container
+      const HostConfig = container?.__hostConfig
+      const containerInfo = container?.__containerInfo
+      if (HostConfig) {
+        // Traverse up and build tree
         let next = vnode
         while (next) {
           const node = next
           if (node.__type && !node.stateNode) {
-            node.stateNode = HostConfig.createInstance(node.__type, node.props, container, null, vnode)
+            node.type = node.__type
+            delete node.__type
+            delete node.props.__vnode
+            node.stateNode = HostConfig.createInstance(node.type, node.props, containerInfo, null, vnode)
             let ref = node.ref
             Object.defineProperty(node, 'ref', {
               get() {
@@ -93,23 +103,25 @@ export function Reconciler(HostConfig) {
 
         if (!vnode.memoizedProps) {
           // On first run, finalize instance
-          const pending = HostConfig.finalizeInitialChildren(vnode.stateNode, vnode.__type, vnode.props, container)
-          if (pending) HostConfig.commitMount(vnode.stateNode, vnode.__type, vnode.props, vnode)
+          const pending = HostConfig.finalizeInitialChildren(vnode.stateNode, vnode.type, vnode.props, containerInfo)
+          if (pending) HostConfig.commitMount(vnode.stateNode, vnode.type, vnode.props, vnode)
         } else {
           // On subsequent runs, reconcile props
           const payload = HostConfig.prepareUpdate(
             vnode.stateNode,
-            vnode.__type,
+            vnode.type,
             vnode.memoizedProps,
             vnode.props,
-            container,
+            containerInfo,
             null,
           )
+
+          // A payload was specified, update instance
           if (payload) {
             const replacement = HostConfig.commitUpdate(
               vnode.stateNode,
               payload,
-              vnode.__type,
+              vnode.type,
               vnode.memoizedProps,
               vnode.props,
               vnode,
@@ -125,14 +137,13 @@ export function Reconciler(HostConfig) {
         }
         vnode.memoizedProps = { ...vnode.props }
       }
+      _diffed?.(vnode)
     }
-
-    _diffed?.(vnode)
   }
 
   return {
     createContainer(__containerInfo) {
-      return Object.assign(document.createElement(id), { __containerInfo })
+      return Object.assign(document.createElement('preact-fiber'), { __containerInfo, __hostConfig })
     },
     updateContainer(element, root, _, callback) {
       return render(element, root, callback)

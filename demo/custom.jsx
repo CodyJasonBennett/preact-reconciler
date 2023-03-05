@@ -45,7 +45,7 @@ function detach(parent, child) {
   delete child.object.__previousAttach
 }
 
-const RESERVED_PROPS = ['args', 'attach', 'object', 'key', 'ref', 'children', '__vnode']
+const RESERVED_PROPS = ['args', 'attach', 'object', 'key', 'ref', 'children']
 
 function applyProps(object, props) {
   for (const prop in props) {

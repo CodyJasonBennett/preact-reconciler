@@ -40,7 +40,7 @@ export default vite.defineConfig({
             async handler(code, { fileName }) {
               return vite.transformWithEsbuild(code, fileName, {
                 minify: true,
-                mangleProps: /^__/,
+                mangleProps: /^__\w+/,
                 mangleQuoted: true,
               })
             },

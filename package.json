@@ -29,22 +29,22 @@
       "require": "./dist/index.js",
       "import": "./dist/index.mjs"
     },
-    "./constants": {
-      "types": "./dist/constants.d.ts",
-      "require": "./dist/constants.js",
-      "import": "./dist/constants.mjs"
-    },
     "./constants.js": {
       "types": "./dist/constants.d.ts",
       "require": "./dist/constants.js",
       "import": "./dist/constants.mjs"
     },
-    "./reflection": {
+    "./constants": {
+      "types": "./dist/constants.d.ts",
+      "require": "./dist/constants.js",
+      "import": "./dist/constants.mjs"
+    },
+    "./reflection.js": {
       "types": "./dist/reflection.d.ts",
       "require": "./dist/reflection.js",
       "import": "./dist/reflection.mjs"
     },
-    "./reflection.js": {
+    "./reflection": {
       "types": "./dist/reflection.d.ts",
       "require": "./dist/reflection.js",
       "import": "./dist/reflection.mjs"
@@ -54,7 +54,7 @@
   "devDependencies": {
     "@preact/preset-vite": "^2.5.0",
     "@react-three/drei": "^9.57.0",
-    "@react-three/fiber": "^8.11.7",
+    "@react-three/fiber": "^8.11.8",
     "jsdom": "^21.1.0",
     "preact": "^10.13.0",
     "suspend-react": "^0.0.9",

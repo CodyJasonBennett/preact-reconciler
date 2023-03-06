@@ -104,40 +104,25 @@ export default function PreactReconciler(__hostConfig: HostConfig): Reconciler {
           next = next.__
         }
 
+        // On first run, finalize instance
         if (!vnode.memoizedProps) {
-          // On first run, finalize instance
           const pending = HostConfig.finalizeInitialChildren(vnode.stateNode, vnode.type, vnode.props, containerInfo)
           if (pending) HostConfig.commitMount(vnode.stateNode, vnode.type, vnode.props, vnode)
-        } else {
-          // On subsequent runs, reconcile props
-          const payload = HostConfig.prepareUpdate(
-            vnode.stateNode,
-            vnode.type,
-            vnode.memoizedProps,
-            vnode.props,
-            containerInfo,
-            null,
-          )
-
-          // A payload was specified, update instance
-          if (payload) {
-            const replacement = HostConfig.commitUpdate(
-              vnode.stateNode,
-              payload,
-              vnode.type,
-              vnode.memoizedProps,
-              vnode.props,
-              vnode,
-            )
-
-            // If commitUpdate returns an instance, swap to it
-            if (replacement) {
-              vnode.stateNode = replacement
-              if (vnode.ref && 'current' in vnode.ref) vnode.ref.current = replacement
-              else vnode.ref?.(replacement)
-            }
-          }
         }
+
+        // Reconcile props
+        const update = HostConfig.prepareUpdate(
+          vnode.stateNode,
+          vnode.type,
+          vnode.memoizedProps,
+          vnode.props,
+          containerInfo,
+          null,
+        )
+        // A payload was specified, update instance
+        if (update)
+          HostConfig.commitUpdate(vnode.stateNode, update, vnode.type, vnode.memoizedProps, vnode.props, vnode)
+
         vnode.memoizedProps = { ...vnode.props }
       }
       _diffed?.(vnode)

@@ -2,7 +2,6 @@ import { vi, it, expect } from 'vitest'
 import * as React from 'react'
 import Reconciler from 'react-reconciler'
 import { DefaultEventPriority, ConcurrentRoot } from 'react-reconciler/constants'
-import { suspend } from 'suspend-react'
 import { act } from 'preact/test-utils'
 
 interface ReconcilerNode<P = Record<string, unknown>> {
@@ -122,6 +121,19 @@ function createPortal(element: React.ReactNode, container: HostContainer): JSX.E
 // Mock scheduler to test React features
 vi.mock('scheduler', () => require('scheduler/unstable_mock'))
 
+const resolved = new WeakMap<Promise<any>, boolean>()
+
+function suspend<T>(value: Promise<T>): T {
+  if (resolved.get(value)) return value as T
+
+  if (!resolved.has(value)) {
+    resolved.set(value, false)
+    value.then(() => resolved.set(value, true))
+  }
+
+  throw value
+}
+
 interface ReactProps<T> {
   key?: React.Key
   ref?: React.Ref<T>
@@ -199,7 +211,8 @@ it.skip('should render JSX', async () => {
   expect(container.head).toBe(null)
 
   // Suspense
-  const Test = () => (suspend(async () => null, []), (<element bar />))
+  const promise = Promise.resolve()
+  const Test = () => (suspend(promise), (<element bar />))
   await act(async () => void (container = render(<Test />)))
   expect(container.head).toStrictEqual({ type: 'element', props: { bar: true }, children: [] })
 
@@ -230,7 +243,8 @@ it.skip('should render text', async () => {
   expect(container.head).toBe(null)
 
   // Suspense
-  const Test = () => (suspend(async () => null, []), (<>three</>))
+  const promise = Promise.resolve()
+  const Test = () => (suspend(promise), (<>three</>))
   await act(async () => void (container = render(<Test />)))
   expect(container.head).toStrictEqual({ type: 'text', props: { value: 'three' }, children: [] })
 

@@ -5,14 +5,12 @@
     "module": "esnext",
     "lib": ["esnext", "dom"],
     "moduleResolution": "node",
+    "jsx": "react",
     "strict": true,
     "pretty": true,
     "declaration": true,
     "emitDeclarationOnly": true,
     "forceConsistentCasingInFileNames": true,
-    "allowSyntheticDefaultImports": true,
-    "paths": {
-      "preact-reconciler": ["./src"]
-    }
+    "allowSyntheticDefaultImports": true
   }
 }

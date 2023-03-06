@@ -32,19 +32,20 @@ export default vite.defineConfig({
     },
   },
   plugins: [
-    preact(),
-    {
-      name: 'vite-minify',
-      renderChunk: {
-        order: 'post',
-        async handler(code, { fileName }) {
-          return vite.transformWithEsbuild(code, fileName, {
-            minify: true,
-            mangleProps: /^__/,
-            mangleQuoted: true,
-          })
-        },
-      },
-    },
+    process.argv[2]
+      ? {
+          name: 'vite-minify',
+          renderChunk: {
+            order: 'post',
+            async handler(code, { fileName }) {
+              return vite.transformWithEsbuild(code, fileName, {
+                minify: true,
+                mangleProps: /^__/,
+                mangleQuoted: true,
+              })
+            },
+          },
+        }
+      : preact(),
   ],
 })

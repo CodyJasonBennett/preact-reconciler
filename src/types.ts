@@ -49,7 +49,7 @@ export interface HostConfig {
   //   hostContext: HostContext,
   //   internalHandle: OpaqueHandle,
   // ): TextInstance
-  // appendInitialChild(parentInstance: Instance, child: Instance | TextInstance): void
+  // appendInitialChild(parent: Instance, child: Instance | TextInstance): void
   finalizeInitialChildren(
     instance: Instance,
     type: Type,
@@ -69,22 +69,22 @@ export interface HostConfig {
   // getRootHostContext(rootContainer: Container): HostContext | null
   // getChildHostContext(parentHostContext: HostContext, type: Type, rootContainer: Container): HostContext
   getPublicInstance(instance: Instance | TextInstance): PublicInstance
-  prepareForCommit(containerInfo: Container): Record<string, any> | null
-  resetAfterCommit(containerInfo: Container): void
+  // prepareForCommit(containerInfo: Container): Record<string, any> | null
+  // resetAfterCommit(containerInfo: Container): void
   // preparePortalMount(containerInfo: Container): void
-  appendChild?(parentInstance: Instance, child: Instance | TextInstance): void
+  appendChild?(parent: Instance, child: Instance | TextInstance): void
   appendChildToContainer?(container: Container, child: Instance | TextInstance): void
-  insertBefore?(parentInstance: Instance, child: Instance | TextInstance, beforeChild: Instance | TextInstance): void
+  insertBefore?(parent: Instance, child: Instance | TextInstance, beforeChild: Instance | TextInstance): void
   insertInContainerBefore?(
     container: Container,
     child: Instance | TextInstance,
     beforeChild: Instance | TextInstance,
   ): void
-  removeChild?(parentInstance: Instance, child: Instance | TextInstance): void
+  removeChild?(parent: Instance, child: Instance | TextInstance): void
   removeChildFromContainer?(container: Container, child: Instance | TextInstance): void
   // resetTextContent?(instance: Instance): void
   // commitTextUpdate?(textInstance: TextInstance, oldText: string, newText: string): void
-  commitMount?(instance: Instance, type: Type, props: Props, internalInstanceHandle: OpaqueHandle): void
+  commitMount?(instance: Instance, type: Type, props: Props, internalHandle: OpaqueHandle): void
   commitUpdate?(
     instance: Instance,
     updatePayload: UpdatePayload,
@@ -98,6 +98,7 @@ export interface HostConfig {
   // unhideInstance?(instance: Instance, props: Props): void
   // unhideTextInstance?(textInstance: TextInstance, text: string): void
   // clearContainer?(container: Container): void
+  [name: string]: unknown
 }
 
 export interface Reconciler {

@@ -53,6 +53,7 @@
   "sideEffects": false,
   "devDependencies": {
     "@preact/preset-vite": "^2.5.0",
+    "@react-three/cannon": "^6.5.2",
     "@react-three/drei": "^9.57.0",
     "@react-three/fiber": "^8.11.8",
     "jsdom": "^21.1.0",

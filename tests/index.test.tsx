@@ -134,8 +134,7 @@ declare global {
   }
 }
 
-// TODO: Preact doesn't implement useInsertionEffect correctly
-it.skip('should go through lifecycle', async () => {
+it('should go through lifecycle', async () => {
   const lifecycle: string[] = []
 
   function Test() {
@@ -149,7 +148,14 @@ it.skip('should go through lifecycle', async () => {
   let container!: HostContainer
   await act(async () => void (container = render(<Test />)))
 
-  expect(lifecycle).toStrictEqual(['render', 'useInsertionEffect', 'ref', 'useLayoutEffect', 'useEffect'])
+  expect(lifecycle).toStrictEqual([
+    'render',
+    'ref',
+    'useInsertionEffect',
+    // 'ref', // Preact is supposed to call insertion effects during diffing
+    'useLayoutEffect',
+    'useEffect',
+  ])
   expect(container.head).toBe(null)
 })
 

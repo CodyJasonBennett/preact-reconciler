@@ -1,4 +1,4 @@
-import { options as _options, render } from 'preact'
+import { type Options, options as _options, render } from 'preact'
 import type { Fiber, HostConfig, Reconciler } from './types'
 
 // Creates an HTMLNode proxy for reconciliation
@@ -40,12 +40,18 @@ class PreactFiber extends (HTMLElement as { new (): Fiber['__e'] }) {
   }
 }
 
+interface InternalOptions extends Options {
+  __b: Options['diffed']
+}
+
+let id!: string
+
 export default function PreactReconciler(__hostConfig: HostConfig): Reconciler {
   // Inject custom reconciler runtime
-  if (!customElements.get('preact-fiber')) {
-    customElements.define('preact-fiber', PreactFiber)
+  if (!id) {
+    customElements.define((id = 'preact-fiber'), PreactFiber)
 
-    const options = _options as any
+    const options = _options as InternalOptions
 
     const _diff = options.__b
     options.__b = (vnode: Fiber) => {
@@ -60,7 +66,7 @@ export default function PreactReconciler(__hostConfig: HostConfig): Reconciler {
           const HostConfig = container.__hostConfig
           if (HostConfig) {
             vnode.__type = vnode.type
-            vnode.type = 'preact-fiber'
+            vnode.type = id
             vnode.props.__vnode = vnode
             vnode.props.__hostConfig = HostConfig
           }
@@ -131,7 +137,7 @@ export default function PreactReconciler(__hostConfig: HostConfig): Reconciler {
 
   return {
     createContainer(__containerInfo) {
-      return Object.assign(document.createElement('preact-fiber'), { __containerInfo, __hostConfig })
+      return Object.assign(document.createElement(id), { __containerInfo, __hostConfig })
     },
     updateContainer(element, root) {
       render(element, root)

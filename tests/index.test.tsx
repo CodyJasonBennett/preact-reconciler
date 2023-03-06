@@ -33,11 +33,13 @@ interface HostConfig {
 
 // react-reconciler exposes some sensitive props. We don't want them exposed in public instances
 const REACT_INTERNAL_PROPS = ['ref', 'key', 'children']
-function getInstanceProps(props: Reconciler.Fiber['pendingProps']): HostConfig['props'] {
-  const instanceProps: HostConfig['props'] = {}
+function getInstanceProps(props: Reconciler.Fiber['pendingProps']): HostConfig['props'] | null {
+  let instanceProps: HostConfig['props'] | null = null
 
   for (const key in props) {
-    if (!REACT_INTERNAL_PROPS.includes(key)) instanceProps[key] = props[key]
+    if (REACT_INTERNAL_PROPS.includes(key)) continue
+    instanceProps ??= {}
+    instanceProps[key] = props[key]
   }
 
   return instanceProps
@@ -66,7 +68,7 @@ const reconciler = Reconciler<
   scheduleTimeout: setTimeout,
   cancelTimeout: clearTimeout,
   noTimeout: -1,
-  createInstance: (type, props) => ({ type, props: getInstanceProps(props), children: [] }),
+  createInstance: (type, props) => ({ type, props: getInstanceProps(props)!, children: [] }),
   hideInstance() {},
   unhideInstance() {},
   createTextInstance: (value) => ({ type: 'text', props: { value }, children: [] }),
@@ -78,14 +80,14 @@ const reconciler = Reconciler<
   insertBefore: (parent, child, beforeChild) => parent.children.splice(parent.children.indexOf(beforeChild), 0, child),
   insertInContainerBefore: (container, child) => (container.head = child),
   removeChild: (parent, child) => parent.children.splice(parent.children.indexOf(child), 1),
-  removeChildFromContainer: (container) => (container.head = null),
+  removeChildFromContainer: (container, child) => void (container.head === child && (container.head = null)),
   getPublicInstance: () => null,
   getRootHostContext: () => null,
   getChildHostContext: () => null,
   shouldSetTextContent: () => false,
   finalizeInitialChildren: () => false,
-  prepareUpdate: () => ({}),
-  commitUpdate: (instance, _, __, ___, props) => (instance.props = getInstanceProps(props)),
+  prepareUpdate: (_instance, _type, _oldProps, newProps) => getInstanceProps(newProps),
+  commitUpdate: (instance, props) => void (instance.props = props),
   commitTextUpdate: (instance, _, value) => (instance.props.value = value),
   prepareForCommit: () => null,
   resetAfterCommit() {},

@@ -66,6 +66,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && tsc",
-    "test": "vitest --environment=jsdom"
+    "test": "vitest run --environment=jsdom"
   }
 }

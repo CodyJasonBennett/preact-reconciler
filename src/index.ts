@@ -114,20 +114,20 @@ export default function PreactReconciler(__hostConfig: HostConfig): Reconciler {
         if (!vnode.memoizedProps) {
           const pending = HostConfig.finalizeInitialChildren(vnode.stateNode, vnode.type, vnode.props, containerInfo)
           if (pending) HostConfig.commitMount(vnode.stateNode, vnode.type, vnode.props, vnode)
+        } else {
+          // On subsequent runs, reconcile props
+          const update = HostConfig.prepareUpdate(
+            vnode.stateNode,
+            vnode.type,
+            vnode.memoizedProps,
+            vnode.props,
+            containerInfo,
+            null,
+          )
+          // A payload was specified, update instance
+          if (update)
+            HostConfig.commitUpdate(vnode.stateNode, update, vnode.type, vnode.memoizedProps, vnode.props, vnode)
         }
-
-        // Reconcile props
-        const update = HostConfig.prepareUpdate(
-          vnode.stateNode,
-          vnode.type,
-          vnode.memoizedProps,
-          vnode.props,
-          containerInfo,
-          null,
-        )
-        // A payload was specified, update instance
-        if (update)
-          HostConfig.commitUpdate(vnode.stateNode, update, vnode.type, vnode.memoizedProps, vnode.props, vnode)
 
         vnode.memoizedProps = { ...vnode.props }
       }

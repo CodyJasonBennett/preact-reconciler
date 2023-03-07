@@ -110,12 +110,12 @@ class FiberNode extends HTMLElement {
 
     const fiber = this.fiber
     if (fiber) {
-      fiber.props[name] = value
-
       if (!fiber.stateNode) {
         // Cleanup overrides
         this.ownerSVGElement = null
         fiber.type = fiber.__type!
+        delete fiber.__type
+        delete fiber.props.fiber
 
         // Create Fiber instance
         const container = fiber.container
@@ -138,9 +138,10 @@ class FiberNode extends HTMLElement {
           },
         })
         fiber.ref = ref
+      } else {
+        fiber.props[name] = value
+        options.diffed?.(fiber)
       }
-
-      options.diffed?.(fiber)
     }
   }
   appendChild<T extends Node>(node: T): T {

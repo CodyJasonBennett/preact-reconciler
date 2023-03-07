@@ -108,9 +108,27 @@ class FiberNode extends HTMLElement {
   setAttribute(name: string, value: any): void {
     ;(this as Record<string, unknown>)[name] = value
 
+    // Commit and reconcile props
     const fiber = this.fiber
     if (fiber) {
-      if (!fiber.stateNode) {
+      const container = fiber.container
+      const HostConfig = (this.hostConfig ??= container.hostConfig)
+      const containerInfo = container.containerInfo
+      fiber.props[name] = value
+
+      if (fiber.stateNode) {
+        const update = HostConfig.prepareUpdate(
+          fiber.stateNode,
+          fiber.type,
+          fiber.memoizedProps,
+          fiber.props,
+          containerInfo,
+          null,
+        )
+        // A payload was specified, update instance
+        if (update)
+          HostConfig.commitUpdate!(fiber.stateNode, update, fiber.type, fiber.memoizedProps, fiber.props, fiber)
+      } else {
         // Cleanup overrides
         this.ownerSVGElement = null
         fiber.type = fiber.__type!
@@ -118,9 +136,7 @@ class FiberNode extends HTMLElement {
         delete fiber.props.fiber
 
         // Create Fiber instance
-        const container = fiber.container
-        const HostConfig = (this.hostConfig ??= container.hostConfig)
-        const containerInfo = container.containerInfo
+        fiber.memoizedProps = { ...fiber.props }
         fiber.stateNode = HostConfig.createInstance(fiber.type, fiber.props, containerInfo, null, fiber)
 
         // Narrow ref as per reconciler's public instance
@@ -138,10 +154,19 @@ class FiberNode extends HTMLElement {
           },
         })
         fiber.ref = ref
-      } else {
-        fiber.props[name] = value
-        options.diffed?.(fiber)
+
+        // Finalize and commit instance
+        const pending = HostConfig.finalizeInitialChildren(
+          fiber.stateNode,
+          fiber.type,
+          fiber.props,
+          containerInfo,
+          null,
+        )
+        if (pending) HostConfig.commitMount!(fiber.stateNode, fiber.type, fiber.props, fiber)
       }
+
+      fiber.memoizedProps[name] = value
     }
   }
   appendChild<T extends Node>(node: T): T {
@@ -198,57 +223,21 @@ export default (hostConfig: HostConfig) => {
     // Link managed nodes on first run
     const DIFF = options.__b
     options.__b = (fiber) => {
-      if (typeof fiber.type === 'string') {
-        if (!fiber.container) {
-          let root = fiber.__
-          while (root.__) root = root.__
-          fiber.container = root.__c!.__P
+      if (typeof fiber.type === 'string' && !fiber.container) {
+        // Find root container node
+        let root = fiber.__
+        while (root.__) root = root.__
+        fiber.container = root.__c!.__P
 
-          if (fiber.container.hostConfig) {
-            fiber.__type = fiber.type
-            fiber.type = id
-            fiber.props.fiber = fiber
-          }
+        // Root belongs to a reconciler, create a Fiber for it
+        if (fiber.container.hostConfig) {
+          fiber.__type = fiber.type
+          fiber.type = id
+          fiber.props.fiber = fiber
         }
       }
+
       DIFF?.(fiber)
-    }
-
-    // Commit and reconcile props
-    const DIFFED = options.diffed
-    options.diffed = (fiber) => {
-      const container = fiber.container
-      const HostConfig = container?.hostConfig
-      const containerInfo = container?.containerInfo
-      if (HostConfig) {
-        // On first run, finalize instance
-        if (!fiber.memoizedProps) {
-          const pending = HostConfig.finalizeInitialChildren(
-            fiber.stateNode,
-            fiber.type,
-            fiber.props,
-            containerInfo,
-            null,
-          )
-          if (pending) HostConfig.commitMount!(fiber.stateNode, fiber.type, fiber.props, fiber)
-        } else {
-          // On subsequent runs, reconcile props
-          const update = HostConfig.prepareUpdate(
-            fiber.stateNode,
-            fiber.type,
-            fiber.memoizedProps,
-            fiber.props,
-            containerInfo,
-            null,
-          )
-          // A payload was specified, update instance
-          if (update)
-            HostConfig.commitUpdate!(fiber.stateNode, update, fiber.type, fiber.memoizedProps, fiber.props, fiber)
-        }
-
-        fiber.memoizedProps = { ...fiber.props }
-      }
-      DIFFED?.(fiber)
     }
   }
 

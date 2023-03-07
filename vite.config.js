@@ -13,7 +13,9 @@ export default vite.defineConfig({
       'react-reconciler': path.resolve(__dirname, './src'),
     },
   },
-  optimizeDeps: false,
+  optimizeDeps: {
+    exclude: ['react-reconciler'],
+  },
   build: {
     target: 'es2018',
     lib: {
@@ -36,7 +38,7 @@ export default vite.defineConfig({
       async transform(code, url) {
         if (!url.includes('node_modules')) {
           return vite.transformWithEsbuild(code, url, {
-            mangleProps: /^(__type|fiber|container|containerInfo|hostConfig)$/,
+            mangleProps: /^(__type|fiber|container|containerInfo|hostConfig|memoizedProps|stateNode)$/,
             mangleQuoted: true,
           })
         }

@@ -1,159 +1,271 @@
-import { type Options, options as _options, render } from 'preact'
-import type { Fiber, HostConfig, Reconciler } from './types'
+import {
+  type VNode,
+  type Component,
+  type ComponentChildren,
+  type ComponentChild,
+  options as _options,
+  render,
+} from 'preact'
+
+interface FiberNode<T = any> extends HTMLElement {
+  ownerSVGElement?: null
+  fiber?: Fiber
+  containerInfo: T
+  hostConfig: HostConfig
+}
+
+export interface Fiber<P = any, I = any, R = any> extends VNode<P> {
+  __c?: Component & {
+    __P: FiberNode<R>
+  }
+  __e: FiberNode<R>
+  __: Fiber
+  __type?: string
+  stateNode?: I
+  type: string
+  container: FiberNode<R>
+  props: P & { children: ComponentChildren }
+  memoizedProps?: P & { children: ComponentChildren }
+}
+
+export interface HostConfig<
+  Type = string,
+  Props = Record<string, any>,
+  Container = any,
+  Instance = any,
+  TextInstance = any,
+  PublicInstance = any,
+  HostContext = any,
+  UpdatePayload = any,
+> {
+  createInstance(
+    type: Type,
+    props: Props,
+    rootContainer: Container,
+    hostContext: HostContext,
+    internalHandle: Fiber<Props, Instance, Container>,
+  ): Instance
+  // createTextInstance(
+  //   text: string,
+  //   rootContainer: Container,
+  //   hostContext: HostContext,
+  //   internalHandle: Fiber<Props, Instance, Container>,
+  // ): TextInstance
+  // appendInitialChild(parent: Instance, child: Instance | TextInstance): void
+  finalizeInitialChildren(
+    instance: Instance,
+    type: Type,
+    props: Props,
+    rootContainer: Container,
+    hostContext: HostContext,
+  ): boolean
+  prepareUpdate(
+    instance: Instance,
+    type: Type,
+    oldProps: Props,
+    newProps: Props,
+    rootContainer: Container,
+    hostContext: HostContext,
+  ): UpdatePayload | null
+  // shouldSetTextContent(type: Type, props: Props): boolean
+  // getRootHostContext(rootContainer: Container): HostContext | null
+  // getChildHostContext(parentHostContext: HostContext, type: Type, rootContainer: Container): HostContext
+  getPublicInstance(instance: Instance | TextInstance): PublicInstance
+  // prepareForCommit(containerInfo: Container): Record<string, any> | null
+  // resetAfterCommit(containerInfo: Container): void
+  // preparePortalMount(containerInfo: Container): void
+  appendChild?(parent: Instance, child: Instance | TextInstance): void
+  appendChildToContainer?(container: Container, child: Instance | TextInstance): void
+  insertBefore?(parent: Instance, child: Instance | TextInstance, beforeChild: Instance | TextInstance): void
+  insertInContainerBefore?(
+    container: Container,
+    child: Instance | TextInstance,
+    beforeChild: Instance | TextInstance,
+  ): void
+  removeChild?(parent: Instance, child: Instance | TextInstance): void
+  removeChildFromContainer?(container: Container, child: Instance | TextInstance): void
+  // resetTextContent?(instance: Instance): void
+  // commitTextUpdate?(textInstance: TextInstance, oldText: string, newText: string): void
+  commitMount?(instance: Instance, type: Type, props: Props, internalHandle: Fiber<Props, Instance, Container>): void
+  commitUpdate?(
+    instance: Instance,
+    updatePayload: UpdatePayload,
+    type: Type,
+    prevProps: Props,
+    nextProps: Props,
+    internalHandle: Fiber<Props, Instance, Container>,
+  ): void
+  // hideInstance?(instance: Instance): void
+  // hideTextInstance?(textInstance: TextInstance): void
+  // unhideInstance?(instance: Instance, props: Props): void
+  // unhideTextInstance?(textInstance: TextInstance, text: string): void
+  // clearContainer?(container: Container): void
+  [name: string]: unknown
+}
 
 // Creates an HTMLNode proxy for reconciliation
-class PreactFiber extends (HTMLElement as { new (): Fiber['__e'] }) {
+class FiberNode extends HTMLElement {
   setAttribute(name: string, value: any): void {
-    this.ownerSVGElement ??= null
-    this[name] = value
+    ;(this as Record<string, unknown>)[name] = value
 
-    const vnode = this.__vnode
-    if (vnode) {
-      vnode.props[name] = value
-      if (vnode.stateNode) _options.diffed?.(vnode)
+    const fiber = this.fiber
+    if (fiber) {
+      fiber.props[name] = value
+
+      if (!fiber.stateNode) {
+        // Cleanup overrides
+        this.ownerSVGElement = null
+        fiber.type = fiber.__type!
+
+        // Create Fiber instance
+        const container = fiber.container
+        const HostConfig = (this.hostConfig ??= container.hostConfig)
+        const containerInfo = container.containerInfo
+        fiber.stateNode = HostConfig.createInstance(fiber.type, fiber.props, containerInfo, null, fiber)
+
+        // Narrow ref as per reconciler's public instance
+        let ref = fiber.ref
+        Object.defineProperty(fiber, 'ref', {
+          get() {
+            return ref
+          },
+          set(value) {
+            ref = (self) => {
+              const publicInstance = self === null ? null : HostConfig.getPublicInstance(fiber.stateNode)
+              if (value && 'current' in value) value.current = publicInstance
+              else value?.(publicInstance)
+            }
+          },
+        })
+        fiber.ref = ref
+      }
+
+      options.diffed?.(fiber)
     }
   }
   appendChild<T extends Node>(node: T): T {
-    const child = node as unknown as PreactFiber
-    if (this.__vnode) {
-      this.__hostConfig.appendChild(this.__vnode.stateNode, child.__vnode!.stateNode)
+    const child = node as unknown as FiberNode
+    if (this.fiber) {
+      this.hostConfig.appendChild!(this.fiber.stateNode, child.fiber!.stateNode)
     } else {
-      this.__hostConfig.appendChildToContainer(this.__containerInfo, child.__vnode!.stateNode)
+      this.hostConfig.appendChildToContainer!(this.containerInfo, child.fiber!.stateNode)
     }
     return super.appendChild(node)
   }
   insertBefore<T extends Node>(node: T, beforeNode: Node | null): T {
-    const child = node as unknown as PreactFiber
-    const beforeChild = beforeNode as unknown as PreactFiber
-    if (this.__vnode) {
-      this.__hostConfig.insertBefore(this.__vnode.stateNode, child.__vnode!.stateNode, beforeChild.__vnode!.stateNode)
+    const child = node as unknown as FiberNode
+    const beforeChild = beforeNode as unknown as FiberNode
+    if (this.fiber) {
+      this.hostConfig.insertBefore!(this.fiber.stateNode, child.fiber!.stateNode, beforeChild.fiber!.stateNode)
     } else {
-      this.__hostConfig.insertInContainerBefore(
-        this.__containerInfo,
-        child.__vnode!.stateNode,
-        beforeChild.__vnode!.stateNode,
-      )
+      this.hostConfig.insertInContainerBefore!(this.containerInfo, child.fiber!.stateNode, beforeChild.fiber!.stateNode)
     }
     return super.insertBefore(node, beforeNode)
   }
   removeChild<T extends Node>(node: T): T {
-    const child = node as unknown as PreactFiber
-    if (this.__vnode) {
-      this.__hostConfig.removeChild(this.__vnode.stateNode, child.__vnode!.stateNode)
+    const child = node as unknown as FiberNode
+    if (this.fiber) {
+      this.hostConfig.removeChild!(this.fiber.stateNode, child.fiber!.stateNode)
     } else {
-      this.__hostConfig.removeChildFromContainer(this.__containerInfo, child.__vnode!.stateNode)
+      this.hostConfig.removeChildFromContainer!(this.containerInfo, child.fiber!.stateNode)
     }
     return super.removeChild(node)
   }
 }
 
-interface InternalOptions extends Options {
-  __b: Options['diffed']
-}
-
 let id!: string
 
-export default function PreactReconciler(__hostConfig: HostConfig): Reconciler {
+const options = _options as {
+  vnode?(fiber: Fiber): void
+  unmount?(fiber: Fiber): void
+  diffed?(fiber: Fiber): void
+  event?(event: Event): any
+  requestAnimationFrame?(callback: () => void): void
+  debounceRendering?(callback: () => void): void
+  useDebugValue?(value: string | number): void
+  __h(component: Component, index: number, type: number): void // HOOK
+  __b(fiber: Fiber): void // DIFF
+  __r(fiber: Fiber): void // RENDER
+  __e(error: any, fiber: Fiber, oldFiber: Fiber): void // CATCH_ERROR
+}
+
+export default function PreactReconciler(hostConfig: HostConfig) {
   // Inject custom reconciler runtime
   if (!id) {
-    customElements.define((id = 'preact-fiber'), PreactFiber)
+    customElements.define((id = 'preact-fiber'), FiberNode)
 
-    const options = _options as InternalOptions
-
-    const _diff = options.__b
-    options.__b = (vnode: Fiber) => {
-      // On first run, link managed nodes
-      if (typeof vnode.type === 'string') {
-        let container = vnode.__container
-        if (!container) {
-          let root = vnode.__
+    // Link managed nodes on first run
+    const DIFF = options.__b
+    options.__b = (fiber) => {
+      if (typeof fiber.type === 'string') {
+        if (!fiber.container) {
+          let root = fiber.__
           while (root.__) root = root.__
-          container = vnode.__container = root.__c.__P
+          fiber.container = root.__c?.__P!
 
-          const HostConfig = container.__hostConfig
-          if (HostConfig) {
-            vnode.__type = vnode.type
-            vnode.type = id
-            vnode.props.__vnode = vnode
-            vnode.props.__hostConfig = HostConfig
+          if (fiber.container.hostConfig) {
+            fiber.__type = fiber.type
+            fiber.type = id
+            fiber.props.fiber = fiber
           }
         }
       }
-      _diff?.(vnode)
+      DIFF?.(fiber)
     }
 
-    const _diffed = options.diffed
-    options.diffed = (vnode: Fiber) => {
-      // Create and link managed instances
-      const container = vnode.__container
-      const HostConfig = container?.__hostConfig
-      const containerInfo = container?.__containerInfo
+    // Commit and reconcile props
+    const DIFFED = options.diffed
+    options.diffed = (fiber) => {
+      const container = fiber.container
+      const HostConfig = container?.hostConfig
+      const containerInfo = container?.containerInfo
       if (HostConfig) {
-        // Traverse up and build tree
-        let next = vnode
-        while (next) {
-          const node = next
-          if (node.__type && !node.stateNode) {
-            node.type = node.__type
-            delete node.__type
-            delete node.props.__vnode
-            delete node.props.__hostConfig
-            node.stateNode = HostConfig.createInstance(node.type, node.props, containerInfo, null, vnode)
-            let ref = node.ref
-            Object.defineProperty(node, 'ref', {
-              get() {
-                return ref
-              },
-              set(value) {
-                ref = (self) => {
-                  const publicInstance = self === null ? null : HostConfig.getPublicInstance(node.stateNode)
-                  if (value && 'current' in value) value.current = publicInstance
-                  else value?.(publicInstance)
-                }
-              },
-            })
-            node.ref = ref
-          }
-          next = next.__
-        }
-
         // On first run, finalize instance
-        if (!vnode.memoizedProps) {
-          const pending = HostConfig.finalizeInitialChildren(vnode.stateNode, vnode.type, vnode.props, containerInfo)
-          if (pending) HostConfig.commitMount(vnode.stateNode, vnode.type, vnode.props, vnode)
+        if (!fiber.memoizedProps) {
+          const pending = HostConfig.finalizeInitialChildren(
+            fiber.stateNode,
+            fiber.type,
+            fiber.props,
+            containerInfo,
+            null,
+          )
+          if (pending) HostConfig.commitMount!(fiber.stateNode, fiber.type, fiber.props, fiber)
         } else {
           // On subsequent runs, reconcile props
           const update = HostConfig.prepareUpdate(
-            vnode.stateNode,
-            vnode.type,
-            vnode.memoizedProps,
-            vnode.props,
+            fiber.stateNode,
+            fiber.type,
+            fiber.memoizedProps,
+            fiber.props,
             containerInfo,
             null,
           )
           // A payload was specified, update instance
           if (update)
-            HostConfig.commitUpdate(vnode.stateNode, update, vnode.type, vnode.memoizedProps, vnode.props, vnode)
+            HostConfig.commitUpdate!(fiber.stateNode, update, fiber.type, fiber.memoizedProps, fiber.props, fiber)
         }
 
-        vnode.memoizedProps = { ...vnode.props }
+        fiber.memoizedProps = { ...fiber.props }
       }
-      _diffed?.(vnode)
+      DIFFED?.(fiber)
     }
   }
 
   return {
-    createContainer(__containerInfo) {
-      return Object.assign(document.createElement(id), { __containerInfo, __hostConfig })
+    createContainer<T>(containerInfo: T): FiberNode<T> {
+      return Object.assign(document.createElement(id), { containerInfo, hostConfig })
     },
-    updateContainer(element, root) {
-      render(element, root)
+    updateContainer<T>(element: ComponentChild, container: FiberNode<T>): void {
+      render(element, container)
     },
-    createPortal() {
+    createPortal(
+      _children: ComponentChild,
+      _containerInfo: any,
+      _implementation: any,
+      _key?: string | null,
+    ): ComponentChild {
       return null // TODO
     },
-    injectIntoDevTools() {},
+    injectIntoDevTools(_devToolsConfig: any): any {},
   }
 }
-
-export * from './types'

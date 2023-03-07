@@ -55,7 +55,7 @@
     "@preact/preset-vite": "^2.5.0",
     "@react-three/cannon": "^6.5.2",
     "@react-three/drei": "^9.57.0",
-    "@react-three/fiber": "^8.11.8",
+    "@react-three/fiber": "^8.11.9",
     "jsdom": "^21.1.0",
     "preact": "^10.13.0",
     "three": "^0.150.1",

@@ -4,7 +4,14 @@ import type { Fiber, HostConfig, Reconciler } from './types'
 // Creates an HTMLNode proxy for reconciliation
 class PreactFiber extends (HTMLElement as { new (): Fiber['__e'] }) {
   setAttribute(name: string, value: any): void {
+    this.ownerSVGElement ??= null
     this[name] = value
+
+    const vnode = this.__vnode
+    if (vnode) {
+      vnode.props[name] = value
+      if (vnode.stateNode) _options.diffed?.(vnode)
+    }
   }
   appendChild<T extends Node>(node: T): T {
     const child = node as unknown as PreactFiber

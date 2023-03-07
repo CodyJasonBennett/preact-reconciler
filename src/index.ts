@@ -189,7 +189,7 @@ const options = _options as {
   __e(error: any, fiber: Fiber, oldFiber: Fiber): void // CATCH_ERROR
 }
 
-export default function PreactReconciler(hostConfig: HostConfig) {
+export default (hostConfig: HostConfig) => {
   // Inject custom reconciler runtime
   if (!id) {
     customElements.define((id = 'preact-fiber'), FiberNode)
@@ -201,7 +201,7 @@ export default function PreactReconciler(hostConfig: HostConfig) {
         if (!fiber.container) {
           let root = fiber.__
           while (root.__) root = root.__
-          fiber.container = root.__c?.__P!
+          fiber.container = root.__c!.__P
 
           if (fiber.container.hostConfig) {
             fiber.__type = fiber.type

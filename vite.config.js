@@ -13,9 +13,7 @@ export default vite.defineConfig({
       'react-reconciler': path.resolve(__dirname, './src'),
     },
   },
-  optimizeDeps: {
-    exclude: ['react-reconciler'],
-  },
+  optimizeDeps: false,
   build: {
     target: 'es2018',
     lib: {
@@ -32,20 +30,23 @@ export default vite.defineConfig({
     },
   },
   plugins: [
-    process.argv[2]
-      ? {
-          name: 'vite-minify',
-          renderChunk: {
-            order: 'post',
-            async handler(code, { fileName }) {
-              return vite.transformWithEsbuild(code, fileName, {
-                minify: true,
-                mangleProps: /^(__type|fiber|container|containerInfo|hostConfig)$/,
-                mangleQuoted: true,
-              })
-            },
-          },
+    preact(),
+    {
+      name: 'vite-minify',
+      async transform(code, url) {
+        if (!url.includes('node_modules')) {
+          return vite.transformWithEsbuild(code, url, {
+            mangleProps: /^(__type|fiber|container|containerInfo|hostConfig)$/,
+            mangleQuoted: true,
+          })
         }
-      : preact(),
+      },
+      renderChunk: {
+        order: 'post',
+        async handler(code, { fileName }) {
+          return vite.transformWithEsbuild(code, fileName, { minify: true })
+        },
+      },
+    },
   ],
 })

@@ -179,8 +179,10 @@ for (const label of ['react', 'preact']) {
       const lifecycle: string[] = []
 
       function Test() {
-        lifecycle.push('render')
-        React.useImperativeHandle(React.useRef(), () => void lifecycle.push('ref'))
+        React.useState(() => lifecycle.push('useState'))
+        const ref = React.useRef<any>()
+        ref.current ??= lifecycle.push('render')
+        React.useImperativeHandle(ref, () => void lifecycle.push('ref'))
         React.useLayoutEffect(() => void lifecycle.push('useLayoutEffect'), [])
         React.useEffect(() => void lifecycle.push('useEffect'), [])
         return null
@@ -189,6 +191,7 @@ for (const label of ['react', 'preact']) {
       await act(async () => void (container = render(<Test />)))
 
       expect(lifecycle).toStrictEqual([
+        'useState',
         'render',
         // 'useInsertionEffect', // Preact is supposed to call insertion effects during diffing
         'ref',

@@ -32,7 +32,7 @@ export default vite.defineConfig({
     },
   },
   plugins: [
-    preact(),
+    process.argv[2] ? undefined : preact(),
     {
       name: 'vite-minify',
       async transform(code, url) {

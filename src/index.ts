@@ -110,7 +110,7 @@ class FiberNode extends HTMLElement {
 
     // Commit and reconcile props
     const fiber = this.fiber
-    if (fiber) {
+    if (fiber?.__type) {
       const container = fiber.container
       const HostConfig = (this.hostConfig ??= container.hostConfig)
       const containerInfo = container.containerInfo
@@ -119,7 +119,7 @@ class FiberNode extends HTMLElement {
       if (fiber.stateNode) {
         const update = HostConfig.prepareUpdate(
           fiber.stateNode,
-          fiber.type,
+          fiber.__type,
           fiber.memoizedProps,
           fiber.props,
           containerInfo,
@@ -127,17 +127,17 @@ class FiberNode extends HTMLElement {
         )
         // A payload was specified, update instance
         if (update)
-          HostConfig.commitUpdate!(fiber.stateNode, update, fiber.type, fiber.memoizedProps, fiber.props, fiber)
+          HostConfig.commitUpdate!(fiber.stateNode, update, fiber.__type, fiber.memoizedProps, fiber.props, fiber)
       } else {
         // Cleanup overrides
         this.ownerSVGElement = null
-        fiber.type = fiber.__type!
-        delete fiber.__type
+        // @ts-ignore
+        fiber.type = typeof IS_REACT_ACT_ENVIRONMENT === 'undefined' ? fiber.__type : 'svg'
         delete fiber.props.fiber
 
         // Create Fiber instance
         fiber.memoizedProps = { ...fiber.props }
-        fiber.stateNode = HostConfig.createInstance(fiber.type, fiber.props, containerInfo, null, fiber)
+        fiber.stateNode = HostConfig.createInstance(fiber.__type, fiber.props, containerInfo, null, fiber)
 
         // Narrow ref as per reconciler's public instance
         let ref = fiber.ref
@@ -158,12 +158,12 @@ class FiberNode extends HTMLElement {
         // Finalize and commit instance
         const pending = HostConfig.finalizeInitialChildren(
           fiber.stateNode,
-          fiber.type,
+          fiber.__type,
           fiber.props,
           containerInfo,
           null,
         )
-        if (pending) HostConfig.commitMount!(fiber.stateNode, fiber.type, fiber.props, fiber)
+        if (pending) HostConfig.commitMount!(fiber.stateNode, fiber.__type, fiber.props, fiber)
       }
 
       fiber.memoizedProps[name] = value

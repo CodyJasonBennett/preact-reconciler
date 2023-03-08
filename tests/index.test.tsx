@@ -74,12 +74,11 @@ for (const label of ['react', 'preact']) {
 
   // react-reconciler exposes some sensitive props. We don't want them exposed in public instances
   const REACT_INTERNAL_PROPS = ['ref', 'key', 'children']
-  function getInstanceProps(props: Record<string, unknown>): HostConfig['props'] | null {
-    let instanceProps: HostConfig['props'] | null = null
+  function getInstanceProps(props: Record<string, unknown>): HostConfig['props'] {
+    const instanceProps: HostConfig['props'] = {}
 
     for (const key in props) {
       if (REACT_INTERNAL_PROPS.includes(key)) continue
-      instanceProps ??= {}
       instanceProps[key] = props[key]
     }
 
@@ -109,7 +108,7 @@ for (const label of ['react', 'preact']) {
     scheduleTimeout: setTimeout,
     cancelTimeout: clearTimeout,
     noTimeout: -1,
-    createInstance: (type, props) => ({ type, props: getInstanceProps(props) ?? {}, children: [] }),
+    createInstance: (type, props) => ({ type, props: getInstanceProps(props), children: [] }),
     hideInstance() {},
     unhideInstance() {},
     createTextInstance: (value) => ({ type: 'text', props: { value }, children: [] }),

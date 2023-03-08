@@ -1,6 +1,7 @@
 import * as path from 'node:path'
 import * as vite from 'vite'
 import preact from '@preact/preset-vite'
+import pkg from './package.json'
 
 const entries = ['./src/index.ts', './src/constants.ts', './src/reflection.ts']
 
@@ -37,10 +38,14 @@ export default vite.defineConfig({
       name: 'vite-minify',
       async transform(code, url) {
         if (!url.includes('node_modules')) {
-          return vite.transformWithEsbuild(code, url, {
-            mangleProps: /^(__type|fiber|container|containerInfo|hostConfig|memoizedProps|stateNode)$/,
-            mangleQuoted: true,
-          })
+          return vite.transformWithEsbuild(
+            code.replace('"preact-reconciler"', `"preact-reconciler-${pkg.version}"`),
+            url,
+            {
+              mangleProps: /^(__type|fiber|container|containerInfo|hostConfig|memoizedProps|stateNode)$/,
+              mangleQuoted: true,
+            },
+          )
         }
       },
       renderChunk: {

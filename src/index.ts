@@ -215,10 +215,17 @@ const options = _options as {
   __e(error: any, fiber: Fiber, oldFiber: Fiber): void // CATCH_ERROR
 }
 
-export default (hostConfig: HostConfig) => {
+export interface Reconciler {
+  createContainer<T>(containerInfo: T): FiberNode<T>
+  updateContainer<T>(element: ComponentChild, container: FiberNode<T>): void
+  createPortal(children: ComponentChild, containerInfo: any, implementation: any, key?: string | null): void
+  injectIntoDevTools(devToolsConfig: any): any
+}
+
+export default (hostConfig: HostConfig): Reconciler => {
   // Inject custom reconciler runtime
   if (!id) {
-    customElements.define((id = 'preact-fiber'), FiberNode)
+    customElements.define((id = 'preact-reconciler'), FiberNode)
 
     // Link managed nodes on first run
     const DIFF = options.__b
@@ -242,20 +249,16 @@ export default (hostConfig: HostConfig) => {
   }
 
   return {
-    createContainer<T>(containerInfo: T): FiberNode<T> {
-      return Object.assign(document.createElement(id), { containerInfo, hostConfig })
+    createContainer(containerInfo) {
+      const container = new FiberNode()
+      container.containerInfo = containerInfo
+      container.hostConfig = hostConfig
+      return container
     },
-    updateContainer<T>(element: ComponentChild, container: FiberNode<T>): void {
+    updateContainer(element, container): void {
       render(element, container)
     },
-    createPortal(
-      _children: ComponentChild,
-      _containerInfo: any,
-      _implementation: any,
-      _key?: string | null,
-    ): ComponentChild {
-      return null // TODO
-    },
-    injectIntoDevTools(_devToolsConfig: any): any {},
+    createPortal() {},
+    injectIntoDevTools() {},
   }
 }

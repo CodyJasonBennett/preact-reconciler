@@ -3,6 +3,7 @@ import {
   type Component,
   type ComponentChildren,
   type ComponentChild,
+  type Options,
   options as _options,
   render,
 } from 'preact'
@@ -201,19 +202,23 @@ class FiberNode extends HTMLElement {
 
 let id!: string
 
-const options = _options as {
-  vnode?(fiber: Fiber): void
-  unmount?(fiber: Fiber): void
-  diffed?(fiber: Fiber): void
-  event?(event: Event): any
-  requestAnimationFrame?(callback: () => void): void
-  debounceRendering?(callback: () => void): void
-  useDebugValue?(value: string | number): void
-  __h(component: Component, index: number, type: number): void // HOOK
-  __b(fiber: Fiber): void // DIFF
-  __r(fiber: Fiber): void // RENDER
-  __e(error: any, fiber: Fiber, oldFiber: Fiber): void // CATCH_ERROR
+interface InternalOptions extends Options {
+  /** Attach a hook that is invoked before render, mainly to check the arguments. */
+  __(vnode: VNode, parent: HTMLElement): void // _root
+  /** Attach a hook that is invoked before a vnode is diffed. */
+  __b(vnode: VNode): void // _diff
+  /** Attach a hook that is invoked after a tree was mounted or was updated. */
+  __c?(vnode: VNode, commitQueue: Component[]): void // _commit
+  /** Attach a hook that is invoked before a vnode has rendered. */
+  __r(vnode: VNode): void // _render
+  /** Attach a hook that is invoked before a hook's state is queried. */
+  __h(component: Component, index: number, type: number): void // _hook
+  /** Bypass effect execution. Currenty only used in devtools for hooks inspection */
+  __s?: boolean // _skipEffects
+  /** Attach a hook that is invoked after an error is caught in a component but before calling lifecycle hooks */
+  __e(error: any, vnode: VNode, oldVNode?: VNode, errorInfo?: { componentStack?: string }): void // _catchError
 }
+const options = _options as InternalOptions
 
 export interface Reconciler {
   createContainer<T>(containerInfo: T): FiberNode<T>
@@ -229,22 +234,22 @@ export default (hostConfig: HostConfig): Reconciler => {
 
     // Link managed nodes on first run
     const DIFF = options.__b
-    options.__b = (fiber) => {
+    options.__b = (vnode) => {
+      const fiber = vnode as Partial<Fiber>
       if (typeof fiber.type === 'string' && !fiber.container) {
         // Find root container node
         let root = fiber.__
-        while (root.__) root = root.__
-        fiber.container = root.__c!.__P
+        while (root?.__) root = root.__
+        fiber.container = root?.__c!.__P
 
         // Root belongs to a reconciler, create a Fiber for it
-        if (fiber.container.hostConfig) {
+        if (fiber.container?.hostConfig) {
           fiber.__type = fiber.type
           fiber.type = id
           fiber.props.fiber = fiber
         }
       }
-
-      DIFF?.(fiber)
+      DIFF?.(vnode)
     }
   }
 

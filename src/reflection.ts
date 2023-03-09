@@ -1,10 +1,10 @@
 type Fiber = any
-type SupenseInstance = any
+type SuspenseInstance = any
 type Container = any
 type ReactComponent = any
 
 export const getNearestMountedFiber = (_fiber: Fiber): Fiber | null => null
-export const getSuspenseInstanceFromFiber = (_fiber: Fiber): SupenseInstance | null => null
+export const getSuspenseInstanceFromFiber = (_fiber: Fiber): SuspenseInstance | null => null
 export const getContainerFromFiber = (_fiber: Fiber): Container | null => null
 export const isFiberMounted = (_fiber: Fiber): boolean => false
 export const isMounted = (_component: ReactComponent): boolean => false

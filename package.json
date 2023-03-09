@@ -1,6 +1,6 @@
 {
   "name": "preact-reconciler",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Custom renderers for Preact in <1KB.",
   "keywords": [
     "react",

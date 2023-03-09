@@ -132,8 +132,6 @@ class FiberNode extends HTMLElement {
       } else {
         // Cleanup overrides
         this.ownerSVGElement = null
-        // @ts-ignore
-        fiber.type = typeof IS_REACT_ACT_ENVIRONMENT === 'undefined' ? fiber.__type : 'svg'
         delete fiber.props.fiber
 
         // Create Fiber instance
@@ -260,9 +258,7 @@ export default (hostConfig: HostConfig): Reconciler => {
       container.hostConfig = hostConfig
       return container
     },
-    updateContainer(element, container): void {
-      render(element, container)
-    },
+    updateContainer: render,
     createPortal() {},
     injectIntoDevTools() {},
   }

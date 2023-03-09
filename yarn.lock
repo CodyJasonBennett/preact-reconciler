@@ -512,10 +512,10 @@
     cannon-es "^0.20.0"
     cannon-es-debugger "^1.0.0"
 
-"@react-three/drei@^9.57.0":
-  version "9.57.0"
-  resolved "https://registry.yarnpkg.com/@react-three/drei/-/drei-9.57.0.tgz#9ec3120c88fc0a21c38f10478108fc95ebba0288"
-  integrity sha512-jlGnzJ8zJdfFof8HtGGY7ANKvuupK81V0YX+lc4aayIlVFrN4Pi0GvpsR7+vhpkyPfxQ0qOOE6HWBqhfBm8EIg==
+"@react-three/drei@^9.57.1":
+  version "9.57.1"
+  resolved "https://registry.yarnpkg.com/@react-three/drei/-/drei-9.57.1.tgz#459d8a8a1578bf08385d5be3500b090b0c14e4e4"
+  integrity sha512-6Vy8PkEKpUXtlS8FvOj3rOZ5k4QurpQulLehgh3HEtUE7SKfhBBTfnSA0dxPZ9eQP5g6gNcgJvZj5oLIuw8GiQ==
   dependencies:
     "@babel/runtime" "^7.11.2"
     "@react-spring/three" "~9.6.1"
@@ -538,10 +538,10 @@
     utility-types "^3.10.0"
     zustand "^3.5.13"
 
-"@react-three/fiber@^8.11.9":
-  version "8.11.9"
-  resolved "https://registry.yarnpkg.com/@react-three/fiber/-/fiber-8.11.9.tgz#50ba430b1cd52c7853d1adeefe06ad397c35da93"
-  integrity sha512-5vZBlbdy+QbNIIjohERs1NL59LOo6XQwM4x4jjV1PKc5KkSy+73Y+/tQGdz6muEkbeOCt4TeM2KtcFjoAdjl1g==
+"@react-three/fiber@^8.12.0":
+  version "8.12.0"
+  resolved "https://registry.yarnpkg.com/@react-three/fiber/-/fiber-8.12.0.tgz#80241992d780d436dfba59d90d9b61e52371fa3e"
+  integrity sha512-o6DkNtNHqcOFRbxaiY5xayelE/9+Z0z9wWu5awqjVbc0c/1QM6AttJH6rKW0U/O6LWxSfxDTARXVzknZqpDJ7A==
   dependencies:
     "@babel/runtime" "^7.17.8"
     "@types/react-reconciler" "^0.26.7"
@@ -780,9 +780,9 @@ camera-controls@^2.1.0:
   integrity sha512-mGPDOqCTSUqaeX3yR3bWQ/p1M5CR8C+cnqndBxQugfGKysn1dhRtw8Q6sG1hq4GL8RPsGwRanwQk5zwQjyrxyQ==
 
 caniuse-lite@^1.0.30001449:
-  version "1.0.30001460"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001460.tgz#31d2e26f0a2309860ed3eff154e03890d9d851a7"
-  integrity sha512-Bud7abqjvEjipUkpLs4D7gR0l8hBYBHoa+tGtKJHvT2AYzLp1z7EmVkUT4ERpVUfca8S2HGIVs883D8pUH1ZzQ==
+  version "1.0.30001462"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001462.tgz#b2e801e37536d453731286857c8520d3dcee15fe"
+  integrity sha512-PDd20WuOBPiasZ7KbFnmQRyuLE7cFXW2PVd7dmALzbkUXEP46upAuCDm9eY9vho8fgNMGmbAX92QBZHzcnWIqw==
 
 cannon-es-debugger@^1.0.0:
   version "1.0.0"
@@ -960,9 +960,9 @@ eastasianwidth@^0.2.0:
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
 electron-to-chromium@^1.4.284:
-  version "1.4.320"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.320.tgz#4d83a90ff74f93939c5413c2ac5a16c696600632"
-  integrity sha512-h70iRscrNluMZPVICXYl5SSB+rBKo22XfuIS1ER0OQxQZpKTnFpuS6coj7wY9M/3trv7OR88rRMOlKmRvDty7Q==
+  version "1.4.325"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.325.tgz#7b97238a61192d85d055d97f3149832b3617d37b"
+  integrity sha512-K1C03NT4I7BuzsRdCU5RWkgZxtswnKDYM6/eMhkEXqKu4e5T+ck610x3FPzu1y7HVFSiQKZqP16gnJzPpji1TQ==
 
 emoji-regex@^9.2.2:
   version "9.2.2"

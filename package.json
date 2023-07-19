@@ -59,7 +59,7 @@
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "jsdom": "^21.1.0",
-    "preact": "^10.13.0",
+    "preact": "^10.16.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "three": "^0.150.1",

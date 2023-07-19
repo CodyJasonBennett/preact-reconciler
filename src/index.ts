@@ -178,6 +178,8 @@ class FiberNode extends HTMLElement {
     return super.appendChild(node)
   }
   insertBefore<T extends Node>(node: T, beforeNode: Node | null): T {
+    if (beforeNode === null) return this.appendChild(node)
+
     const child = node as unknown as FiberNode
     const beforeChild = beforeNode as unknown as FiberNode
     if (this.fiber) {

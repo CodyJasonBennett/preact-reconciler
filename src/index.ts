@@ -15,6 +15,10 @@ interface FiberNode<T = any> extends HTMLElement {
   hostConfig: HostConfig
 }
 
+// https://github.com/facebook/react/blob/main/packages/react-reconciler/src/ReactFiberFlags.js
+const NoFlags = 0
+const Update = 4
+
 export interface Fiber<P = any, I = any, R = any> extends VNode<P> {
   __c?: Component & {
     __P: FiberNode<R>
@@ -27,6 +31,8 @@ export interface Fiber<P = any, I = any, R = any> extends VNode<P> {
   container: FiberNode<R>
   props: P & { children: ComponentChildren }
   memoizedProps?: P & { children: ComponentChildren }
+  sibling: Fiber | null
+  flags: number
 }
 
 export interface HostConfig<
@@ -60,7 +66,7 @@ export interface HostConfig<
     rootContainer: Container,
     hostContext: HostContext,
   ): boolean
-  prepareUpdate(
+  prepareUpdate?(
     instance: Instance,
     type: Type,
     oldProps: Props,
@@ -96,6 +102,13 @@ export interface HostConfig<
     nextProps: Props,
     internalHandle: Fiber<Props, Instance, Container>,
   ): void
+  commitUpdate?(
+    instance: Instance,
+    type: Type,
+    prevProps: Props,
+    nextProps: Props,
+    internalHandle: Fiber<Props, Instance, Container>,
+  ): void
   // hideInstance?(instance: Instance): void
   // hideTextInstance?(textInstance: TextInstance): void
   // unhideInstance?(instance: Instance, props: Props): void
@@ -118,17 +131,26 @@ class FiberNode extends HTMLElement {
       fiber.props[name] = value
 
       if (fiber.stateNode) {
-        const update = HostConfig.prepareUpdate(
-          fiber.stateNode,
-          fiber.__type,
-          fiber.memoizedProps,
-          fiber.props,
-          containerInfo,
-          null,
-        )
-        // A payload was specified, update instance
-        if (update)
-          HostConfig.commitUpdate!(fiber.stateNode, update, fiber.__type, fiber.memoizedProps, fiber.props, fiber)
+        // Emulate scheduled work
+        fiber.sibling = (this.nextSibling as FiberNode | null)?.fiber ?? null
+        fiber.flags = this.nextSibling?.nextSibling ? Update : NoFlags
+
+        // React 19 removes prepareUpdate and update payload
+        if (HostConfig.prepareUpdate) {
+          const update = HostConfig.prepareUpdate(
+            fiber.stateNode,
+            fiber.__type,
+            fiber.memoizedProps,
+            fiber.props,
+            containerInfo,
+            null,
+          )
+          // A payload was specified, update instance
+          if (update)
+            HostConfig.commitUpdate!(fiber.stateNode, update, fiber.__type, fiber.memoizedProps, fiber.props, fiber)
+        } else {
+          ;(HostConfig as any).commitUpdate?.(fiber.stateNode, fiber.__type, fiber.memoizedProps, fiber.props, fiber)
+        }
       } else {
         // Cleanup overrides
         this.ownerSVGElement = null

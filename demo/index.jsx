@@ -25,8 +25,8 @@ function Cube(props) {
 
 render(
   <Canvas shadows camera={{ fov: 50, position: [-5, 5, 5] }}>
-    <ambientLight />
-    <spotLight castShadow angle={0.25} penumbra={0.5} position={[10, 10, 5]} />
+    <ambientLight intensity={Math.PI} />
+    <spotLight intensity={Math.PI} castShadow angle={0.25} penumbra={0.5} decay={0} position={[10, 10, 5]} />
     <OrbitControls />
     <Physics>
       <Plane />

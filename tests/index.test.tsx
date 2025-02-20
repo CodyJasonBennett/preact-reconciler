@@ -1,8 +1,5 @@
 import { vi, describe, it, expect } from 'vitest'
-
-declare module 'react' {
-  const unstable_act: <T = any>(cb: () => Promise<T>) => Promise<T>
-}
+import type ReconcilerType from 'react-reconciler'
 
 type React = typeof import('react')
 type Reconciler = typeof import('react-reconciler')
@@ -23,7 +20,7 @@ interface ReactProps<T> {
   children?: React.ReactNode
 }
 
-declare global {
+declare module 'react' {
   namespace JSX {
     interface IntrinsicElements {
       element: ReactProps<null> & Record<string, unknown>
@@ -39,12 +36,126 @@ for (const label of ['react', 'preact']) {
   const Reconciler: _Reconciler = (
     await import(label === 'react' ? '../node_modules/react-reconciler' : 'react-reconciler')
   ).default
-  const { DefaultEventPriority, ConcurrentRoot } = await import(
-    label === 'react' ? '../node_modules/react-reconciler/constants' : 'react-reconciler/constants'
-  )
+  const {
+    // NoEventPriority,
+    ContinuousEventPriority,
+    DiscreteEventPriority,
+    DefaultEventPriority,
+    ConcurrentRoot,
+  } = await import(label === 'react' ? '../node_modules/react-reconciler/constants' : 'react-reconciler/constants')
+  const NoEventPriority = 0
 
-  // preact/compat doesn't export React 18 unstable_act
-  const act = label === 'react' ? React.unstable_act : (await import('preact/test-utils')).act
+  // preact/compat doesn't export React 18 act
+  const act = label === 'react' ? React.act : (await import('preact/test-utils')).act
+
+  // TODO: upstream to DefinitelyTyped for React 19
+  // https://github.com/facebook/react/issues/28956
+  type EventPriority = number
+
+  function createReconciler<
+    Type,
+    Props,
+    Container,
+    Instance,
+    TextInstance,
+    SuspenseInstance,
+    HydratableInstance,
+    FormInstance,
+    PublicInstance,
+    HostContext,
+    ChildSet,
+    TimeoutHandle,
+    NoTimeout,
+    TransitionStatus,
+  >(
+    config: Omit<
+      ReconcilerType.HostConfig<
+        Type,
+        Props,
+        Container,
+        Instance,
+        TextInstance,
+        SuspenseInstance,
+        HydratableInstance,
+        PublicInstance,
+        HostContext,
+        null, // updatePayload
+        ChildSet,
+        TimeoutHandle,
+        NoTimeout
+      >,
+      'getCurrentEventPriority' | 'prepareUpdate' | 'commitUpdate'
+    > & {
+      /**
+       * This method should mutate the `instance` and perform prop diffing if needed.
+       *
+       * The `internalHandle` data structure is meant to be opaque. If you bend the rules and rely on its internal fields, be aware that it may change significantly between versions. You're taking on additional maintenance risk by reading from it, and giving up all guarantees if you write something to it.
+       */
+      commitUpdate?(
+        instance: Instance,
+        type: Type,
+        prevProps: Props,
+        nextProps: Props,
+        internalHandle: ReconcilerType.OpaqueHandle,
+      ): void
+
+      // Undocumented
+      // https://github.com/facebook/react/pull/26722
+      NotPendingTransition: TransitionStatus | null
+      HostTransitionContext: React.Context<TransitionStatus>
+      // https://github.com/facebook/react/pull/28751
+      setCurrentUpdatePriority(newPriority: EventPriority): void
+      getCurrentUpdatePriority(): EventPriority
+      resolveUpdatePriority(): EventPriority
+      // https://github.com/facebook/react/pull/28804
+      resetFormInstance(form: FormInstance): void
+      // https://github.com/facebook/react/pull/25105
+      requestPostPaintCallback(callback: (time: number) => void): void
+      // https://github.com/facebook/react/pull/26025
+      shouldAttemptEagerTransition(): boolean
+      // https://github.com/facebook/react/pull/31528
+      trackSchedulerEvent(): void
+      // https://github.com/facebook/react/pull/31008
+      resolveEventType(): null | string
+      resolveEventTimeStamp(): number
+
+      /**
+       * This method is called during render to determine if the Host Component type and props require some kind of loading process to complete before committing an update.
+       */
+      maySuspendCommit(type: Type, props: Props): boolean
+      /**
+       * This method may be called during render if the Host Component type and props might suspend a commit. It can be used to initiate any work that might shorten the duration of a suspended commit.
+       */
+      preloadInstance(type: Type, props: Props): boolean
+      /**
+       * This method is called just before the commit phase. Use it to set up any necessary state while any Host Components that might suspend this commit are evaluated to determine if the commit must be suspended.
+       */
+      startSuspendingCommit(): void
+      /**
+       * This method is called after `startSuspendingCommit` for each Host Component that indicated it might suspend a commit.
+       */
+      suspendInstance(type: Type, props: Props): void
+      /**
+       * This method is called after all `suspendInstance` calls are complete.
+       *
+       * Return `null` if the commit can happen immediately.
+       *
+       * Return `(initiateCommit: Function) => Function` if the commit must be suspended. The argument to this callback will initiate the commit when called. The return value is a cancellation function that the Reconciler can use to abort the commit.
+       *
+       */
+      waitForCommitToBeReady(): ((initiateCommit: Function) => Function) | null
+    },
+  ): ReconcilerType.Reconciler<Container, Instance, TextInstance, SuspenseInstance, PublicInstance> {
+    const reconciler = Reconciler(config as any)
+
+    reconciler.injectIntoDevTools({
+      bundleType: typeof process !== 'undefined' && process.env.NODE_ENV !== 'production' ? 1 : 0,
+      rendererPackageName: 'react-nil',
+      version: React.version,
+    })
+
+    return reconciler as any
+  }
 
   interface ReconcilerNode<P = Record<string, unknown>> {
     type: string
@@ -65,11 +176,12 @@ for (const label of ['react', 'preact']) {
     suspenseInstance: ReconcilerNode
     hydratableInstance: never
     publicInstance: null
-    hostContext: null
-    updatePayload: {}
+    formInstance: never
+    hostContext: {}
     childSet: never
     timeoutHandle: number
     noTimeout: -1
+    TransitionStatus: null
   }
 
   // react-reconciler exposes some sensitive props. We don't want them exposed in public instances
@@ -85,7 +197,11 @@ for (const label of ['react', 'preact']) {
     return instanceProps
   }
 
-  const reconciler = Reconciler<
+  const NO_CONTEXT: HostConfig['hostContext'] = {}
+
+  let currentUpdatePriority: number = NoEventPriority
+
+  const reconciler = createReconciler<
     HostConfig['type'],
     HostConfig['props'],
     HostConfig['container'],
@@ -93,18 +209,19 @@ for (const label of ['react', 'preact']) {
     HostConfig['textInstance'],
     HostConfig['suspenseInstance'],
     HostConfig['hydratableInstance'],
+    HostConfig['formInstance'],
     HostConfig['publicInstance'],
     HostConfig['hostContext'],
-    HostConfig['updatePayload'],
     HostConfig['childSet'],
     HostConfig['timeoutHandle'],
-    HostConfig['noTimeout']
+    HostConfig['noTimeout'],
+    HostConfig['TransitionStatus']
   >({
     isPrimaryRenderer: false,
+    warnsIfNotActing: false,
     supportsMutation: true,
     supportsPersistence: false,
     supportsHydration: false,
-    now: Date.now,
     scheduleTimeout: setTimeout,
     cancelTimeout: clearTimeout,
     noTimeout: -1,
@@ -119,26 +236,66 @@ for (const label of ['react', 'preact']) {
     appendChildToContainer: (container, child) => (container.head = child),
     insertBefore: (parent, child, beforeChild) =>
       parent.children.splice(parent.children.indexOf(beforeChild), 0, child),
-    insertInContainerBefore: (container, child) => (container.head = child),
     removeChild: (parent, child) => parent.children.splice(parent.children.indexOf(child), 1),
-    removeChildFromContainer: (container, child) => void (container.head === child && (container.head = null)),
+    removeChildFromContainer: (container) => (container.head = null),
     getPublicInstance: () => null,
-    getRootHostContext: () => null,
-    getChildHostContext: () => null,
+    getRootHostContext: () => NO_CONTEXT,
+    getChildHostContext: () => NO_CONTEXT,
     shouldSetTextContent: () => false,
     finalizeInitialChildren: () => false,
-    prepareUpdate: (_instance, _type, _oldProps, newProps) => getInstanceProps(newProps),
-    commitUpdate: (instance, props) => void (instance.props = props),
+    commitUpdate: (instance, _type, _prevProps, nextProps) => (instance.props = getInstanceProps(nextProps)),
     commitTextUpdate: (instance, _, value) => (instance.props.value = value),
     prepareForCommit: () => null,
     resetAfterCommit() {},
     preparePortalMount() {},
     clearContainer: (container) => (container.head = null),
-    // @ts-ignore
-    getCurrentEventPriority: () => DefaultEventPriority,
-    beforeActiveInstanceBlur: () => {},
-    afterActiveInstanceBlur: () => {},
-    detachDeletedInstance: () => {},
+    getInstanceFromNode: () => null,
+    beforeActiveInstanceBlur() {},
+    afterActiveInstanceBlur() {},
+    detachDeletedInstance() {},
+    prepareScopeUpdate() {},
+    getInstanceFromScope: () => null,
+    shouldAttemptEagerTransition: () => false,
+    trackSchedulerEvent: () => {},
+    resolveEventType: () => null,
+    resolveEventTimeStamp: () => -1.1,
+    requestPostPaintCallback() {},
+    maySuspendCommit: () => false,
+    preloadInstance: () => true, // true indicates already loaded
+    startSuspendingCommit() {},
+    suspendInstance() {},
+    waitForCommitToBeReady: () => null,
+    NotPendingTransition: null,
+    HostTransitionContext: /* @__PURE__ */ React.createContext<HostConfig['TransitionStatus']>(null),
+    setCurrentUpdatePriority(newPriority: number) {
+      currentUpdatePriority = newPriority
+    },
+    getCurrentUpdatePriority() {
+      return currentUpdatePriority
+    },
+    resolveUpdatePriority() {
+      if (currentUpdatePriority !== NoEventPriority) return currentUpdatePriority
+
+      switch (typeof window !== 'undefined' && window.event?.type) {
+        case 'click':
+        case 'contextmenu':
+        case 'dblclick':
+        case 'pointercancel':
+        case 'pointerdown':
+        case 'pointerup':
+          return DiscreteEventPriority
+        case 'pointermove':
+        case 'pointerout':
+        case 'pointerover':
+        case 'pointerenter':
+        case 'pointerleave':
+        case 'wheel':
+          return ContinuousEventPriority
+        default:
+          return DefaultEventPriority
+      }
+    },
+    resetFormInstance() {},
   })
 
   reconciler.injectIntoDevTools({
@@ -156,7 +313,7 @@ for (const label of ['react', 'preact']) {
     return container
   }
 
-  function createPortal(_element: React.ReactNode, _container: HostContainer): JSX.Element {
+  function createPortal(_element: React.ReactNode, _container: HostContainer): React.JSX.Element {
     // return <>{reconciler.createPortal(element, container, null, null)}</>
     return <></>
   }
@@ -180,7 +337,7 @@ for (const label of ['react', 'preact']) {
 
       function Test() {
         React.useState(() => lifecycle.push('useState'))
-        const ref = React.useRef<any>()
+        const ref = React.useRef<any>(null)
         ref.current ??= lifecycle.push('render')
         React.useImperativeHandle(ref, () => void lifecycle.push('ref'))
         React.useLayoutEffect(() => void lifecycle.push('useLayoutEffect'), [])

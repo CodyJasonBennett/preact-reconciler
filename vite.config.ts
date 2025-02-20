@@ -1,6 +1,5 @@
 import * as path from 'node:path'
 import * as vite from 'vite'
-import preact from '@preact/preset-vite'
 import pkg from './package.json'
 
 const entries = ['./src/index.ts', './src/constants.ts', './src/reflection.ts']
@@ -33,7 +32,6 @@ export default vite.defineConfig({
     },
   },
   plugins: [
-    process.argv[2] ? undefined : preact(),
     {
       name: 'vite-minify',
       async transform(code, url) {

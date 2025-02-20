@@ -1,3 +1,4 @@
+import * as React from 'preact/compat' // JSX transform
 import { render } from 'preact'
 import { usePlane, useBox, Physics } from '@react-three/cannon'
 import { OrbitControls } from '@react-three/drei'

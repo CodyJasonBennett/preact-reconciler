@@ -175,7 +175,7 @@ for (const label of ['react', 'preact']) {
     textInstance: ReconcilerNode
     suspenseInstance: ReconcilerNode
     hydratableInstance: never
-    publicInstance: null
+    publicInstance: {}
     formInstance: never
     hostContext: {}
     childSet: never
@@ -198,6 +198,7 @@ for (const label of ['react', 'preact']) {
   }
 
   const NO_CONTEXT: HostConfig['hostContext'] = {}
+  const PUBLIC_INSTANCE: HostConfig['publicInstance'] = {}
 
   let currentUpdatePriority: number = NoEventPriority
 
@@ -238,7 +239,7 @@ for (const label of ['react', 'preact']) {
       parent.children.splice(parent.children.indexOf(beforeChild), 0, child),
     removeChild: (parent, child) => parent.children.splice(parent.children.indexOf(child), 1),
     removeChildFromContainer: (container) => (container.head = null),
-    getPublicInstance: () => null,
+    getPublicInstance: () => PUBLIC_INSTANCE,
     getRootHostContext: () => NO_CONTEXT,
     getChildHostContext: () => NO_CONTEXT,
     shouldSetTextContent: () => false,
@@ -335,6 +336,9 @@ for (const label of ['react', 'preact']) {
     it('should go through lifecycle', async () => {
       const lifecycle: string[] = []
 
+      const refCallback = vi.fn()
+      const refCleanup = vi.fn()
+
       function Test() {
         React.useState(() => lifecycle.push('useState'))
         const ref = React.useRef<any>(null)
@@ -342,10 +346,9 @@ for (const label of ['react', 'preact']) {
         React.useImperativeHandle(ref, () => void lifecycle.push('ref'))
         React.useLayoutEffect(() => void lifecycle.push('useLayoutEffect'), [])
         React.useEffect(() => void lifecycle.push('useEffect'), [])
-        return null
+        return <element ref={(self) => (refCallback(self), refCleanup)} />
       }
-      let container!: HostContainer
-      await act(async () => void (container = render(<Test />)))
+      await act(async () => void render(<Test />))
 
       expect(lifecycle).toStrictEqual([
         'useState',
@@ -355,7 +358,14 @@ for (const label of ['react', 'preact']) {
         'useLayoutEffect',
         'useEffect',
       ])
-      expect(container.head).toBe(null)
+      expect(refCallback).toHaveBeenCalledWith(PUBLIC_INSTANCE)
+      expect(refCleanup).not.toHaveBeenCalled()
+
+      refCallback.mockClear()
+
+      await act(async () => void render(null))
+      expect(refCallback).not.toHaveBeenCalled()
+      expect(refCleanup).toHaveBeenCalled()
     })
 
     it('should render JSX', async () => {

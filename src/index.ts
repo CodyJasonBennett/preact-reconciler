@@ -31,6 +31,7 @@ export interface Fiber<P = any, I = any, R = any> extends VNode<P> {
   container: FiberNode<R>
   props: P & { children: ComponentChildren }
   memoizedProps?: P & { children: ComponentChildren }
+  refCleanup: null | (() => void)
   sibling: Fiber | null
   flags: number
 }
@@ -168,9 +169,14 @@ class FiberNode extends HTMLElement {
           },
           set(value) {
             ref = (self) => {
-              const publicInstance = self === null ? null : HostConfig.getPublicInstance(fiber.stateNode)
-              if (value && 'current' in value) value.current = publicInstance
-              else value?.(publicInstance)
+              const isMounted = self != null
+              const publicInstance = isMounted ? HostConfig.getPublicInstance(fiber.stateNode) : null
+              if (value && 'current' in value) {
+                value.current = publicInstance
+              } else {
+                if (isMounted) fiber.refCleanup = value?.(publicInstance)
+                else fiber.refCleanup?.()
+              }
             }
           },
         })

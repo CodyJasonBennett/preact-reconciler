@@ -49,7 +49,7 @@ export default vite.defineConfig({
       renderChunk: {
         order: 'post',
         async handler(code, { fileName }) {
-          return vite.transformWithEsbuild(code, fileName, { minify: true })
+          return vite.transformWithEsbuild(code, fileName, { minify: true, target: 'es2018' })
         },
       },
     },

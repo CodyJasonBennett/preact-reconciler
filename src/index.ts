@@ -118,48 +118,47 @@ export interface HostConfig<
   [name: string]: unknown
 }
 
-// Creates an HTMLNode proxy for reconciliation
+// Creates an HTMLNode proxy to implement React's internal runtime
 class FiberNode extends HTMLElement {
   setAttribute(name: string, value: any): void {
     ;(this as Record<string, unknown>)[name] = value
 
     // Commit and reconcile props
     const fiber = this.fiber
-    if (fiber?.__type) {
+    const type = fiber?.__type
+    if (type) {
       const container = fiber.container
       const HostConfig = (this.hostConfig ??= container.hostConfig)
       const containerInfo = container.containerInfo
-      fiber.props[name] = value
+
+      const props = fiber.props
+      props[name] = value
 
       if (fiber.stateNode) {
         // Emulate scheduled work
         fiber.sibling = (this.nextSibling as FiberNode | null)?.fiber ?? null
         fiber.flags = this.nextSibling?.nextSibling ? Update : NoFlags
 
+        const memoizedProps = fiber.memoizedProps
+        memoizedProps[name] = value
+
         // React 19 removes prepareUpdate and update payload
+        const stateNode = fiber.stateNode
         if (HostConfig.prepareUpdate) {
-          const update = HostConfig.prepareUpdate(
-            fiber.stateNode,
-            fiber.__type,
-            fiber.memoizedProps,
-            fiber.props,
-            containerInfo,
-            null,
-          )
+          const update = HostConfig.prepareUpdate(stateNode, type, memoizedProps, props, containerInfo, null)
           // A payload was specified, update instance
-          if (update)
-            HostConfig.commitUpdate!(fiber.stateNode, update, fiber.__type, fiber.memoizedProps, fiber.props, fiber)
+          if (update) HostConfig.commitUpdate!(stateNode, update, type, memoizedProps, props, fiber)
         } else {
-          ;(HostConfig as any).commitUpdate?.(fiber.stateNode, fiber.__type, fiber.memoizedProps, fiber.props, fiber)
+          ;(HostConfig as any).commitUpdate?.(stateNode, type, memoizedProps, props, fiber)
         }
       } else {
-        // Cleanup overrides
+        // Cleanup Preact overrides
         this.ownerSVGElement = null
-        delete fiber.props.fiber
+        delete props.fiber
 
         // Create Fiber instance
-        fiber.memoizedProps = { ...fiber.props }
-        fiber.stateNode = HostConfig.createInstance(fiber.__type, fiber.props, containerInfo, null, fiber)
+        fiber.memoizedProps = { ...props }
+        const stateNode = (fiber.stateNode = HostConfig.createInstance(type, props, containerInfo, null, fiber))
 
         // Narrow ref as per reconciler's public instance
         let ref = fiber.ref
@@ -170,7 +169,7 @@ class FiberNode extends HTMLElement {
           set(value) {
             ref = (self) => {
               const isMounted = self != null
-              const publicInstance = isMounted ? HostConfig.getPublicInstance(fiber.stateNode) : null
+              const publicInstance = isMounted ? HostConfig.getPublicInstance(stateNode) : null
               if (value && 'current' in value) {
                 value.current = publicInstance
               } else {
@@ -183,17 +182,9 @@ class FiberNode extends HTMLElement {
         fiber.ref = ref
 
         // Finalize and commit instance
-        const pending = HostConfig.finalizeInitialChildren(
-          fiber.stateNode,
-          fiber.__type,
-          fiber.props,
-          containerInfo,
-          null,
-        )
-        if (pending) HostConfig.commitMount!(fiber.stateNode, fiber.__type, fiber.props, fiber)
+        const pending = HostConfig.finalizeInitialChildren(stateNode, type, props, containerInfo, null)
+        if (pending) HostConfig.commitMount!(stateNode, type, props, fiber)
       }
-
-      fiber.memoizedProps[name] = value
     }
   }
   appendChild<T extends Node>(node: T): T {
@@ -228,8 +219,6 @@ class FiberNode extends HTMLElement {
   }
 }
 
-let id!: string
-
 interface InternalOptions extends Options {
   /** Attach a hook that is invoked before render, mainly to check the arguments. */
   __(vnode: VNode, parent: HTMLElement): void // _root
@@ -255,6 +244,8 @@ export interface Reconciler {
   injectIntoDevTools(devToolsConfig: any): any
 }
 
+let id!: string
+
 export default (hostConfig: HostConfig): Reconciler => {
   // Inject custom reconciler runtime
   if (!id) {
@@ -272,9 +263,10 @@ export default (hostConfig: HostConfig): Reconciler => {
 
         // Root belongs to a reconciler, create a Fiber for it
         if (fiber.container?.hostConfig) {
+          // Track Fiber element type separately from DOM element type
           fiber.__type = fiber.type
           fiber.type = id
-          fiber.props.fiber = fiber
+          fiber.props.fiber = fiber // ensures setAttribute is called to initialize state
         }
       }
       DIFF?.(vnode)

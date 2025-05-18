@@ -36,14 +36,10 @@ export default vite.defineConfig({
       name: 'vite-minify',
       async transform(code, url) {
         if (!url.includes('node_modules')) {
-          return vite.transformWithEsbuild(
-            code.replace('"preact-reconciler"', `"preact-reconciler-${pkg.version}"`),
-            url,
-            {
-              mangleProps: /^(__type|fiber|container|containerInfo|hostConfig|memoizedProps|stateNode)$/,
-              mangleQuoted: true,
-            },
-          )
+          return vite.transformWithEsbuild(code, url, {
+            mangleProps: /^(__type|fiber|container|containerInfo|hostConfig|memoizedProps|stateNode)$/,
+            mangleQuoted: true,
+          })
         }
       },
       renderChunk: {
